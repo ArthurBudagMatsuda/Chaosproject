@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+.chaos-data/
+.next/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+
+# Local verification screenshots (not application assets).
+/chaos-*.png
+/chaos-*.jpg
