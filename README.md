@@ -1,6 +1,6 @@
 # CHAOS
 
-Experimental Solana market observatory and visual simulation. Next.js, TypeScript, Tailwind CSS, Framer Motion and Lucide. No smart contract, wallet, purchase, signing or financial distribution is implemented.
+Experimental Solana market observatory, visual simulation and non-custodial financial monitor. Next.js, TypeScript, Tailwind CSS, Framer Motion and Lucide. No smart contract, wallet connection, purchase, signing or automatic transfer is implemented.
 
 ## Run
 
@@ -29,6 +29,12 @@ pnpm start
 ```
 
 The worker runs independently of page requests. It persists observations, history, events and the threshold latch in `.chaos-data/state.json` using atomic replacement. A PID lock prevents two local workers sharing the directory. Continuous mode respects the saved next evaluation after restart. Stop with Ctrl+C. Do not edit state while the worker runs.
+
+The same process runs an independent Solana RPC monitor for `CHAOS_TOKEN_CA` and `FEE_WALLET_CA`. Financial observations, verified distributions and real events are persisted atomically in `.chaos-data/financial-state.json` with a separate short-lived lock. Leaving either address empty is supported and appears as `NOT CONFIGURED`. The monitor never receives a private key and has no transaction-signing or transfer method.
+
+The protected `/admin` console is enabled only when `CHAOS_ADMIN_PASSWORD` and a random `CHAOS_ADMIN_SESSION_SECRET` of at least 32 characters are configured. It accepts metadata and a TXID for a transfer that the administrator already made outside the website. Registration verifies Solana confirmation, source wallet, destination wallet and exact SOL amount. Confirmed records are immutable and emit `DISTRIBUTION_CONFIRMED` with `simulated: false`.
+
+Threshold calculation starts at `BASE_DISTRIBUTION_THRESHOLD_SOL=5`, uses `NEXT_THRESHOLD_MULTIPLIER` by default and optionally accepts an explicit `CHAOS_DISTRIBUTION_THRESHOLDS_SOL` sequence. `DISTRIBUTION_PERCENTAGE` calculates an informational amount from the current eligible balance. Reaching a threshold never sends funds.
 
 ## Scanner and eligibility
 
@@ -74,7 +80,8 @@ At a complete, healthy index of 100, the backend records `CHAOS_EVENT_TRIGGERED`
 | --- | --- |
 | `GET /api/chaos` | Full snapshot, components/coverage and simulated event history |
 | `GET /api/tokens` | System metadata and eligible observations |
-| `GET /api/events` | System metadata, eligible observations and simulated events |
+| `GET /api/events` | Legacy simulated events plus separate verified events and confirmed distributions |
+| `GET /api/financial` | Read-only token, fee-wallet, threshold and verified distribution state |
 
 Every successful response includes `chaosIndex`, `systemState`, `eligibleTokenCount`, `eligibleTokens`, `lastUpdate`, `nextEvaluation`, `eventStatus`, provider provenance, status, formula version, eligibility and discovery coverage. `/api/chaos` also includes `components`. Timestamps are ISO UTC; missing values are null. Headers explicitly identify DEX Screener, the experimental metric and simulated events.
 
@@ -90,7 +97,7 @@ Simulation Mode retains the development slider and local 0–100 state. At 100 t
 
 Live Mode has no slider. `src/lib/live-chaos-source.ts` reads `/api/chaos` and explicitly labels off-chain DEX Screener observations and provisional status. It does not call the local simulation reducer, choose a token, reset measured data or infer an event from a frontend reading of 100. It renders the backend's simulated event status only.
 
-The future Solana program must own real financial triggers, verifiable randomness, selection, treasury distribution and cycle transitions. The frontend read interface has no trigger, wallet, signing or distribution methods. Neither backend demo events nor local `Math.random()` may be reused as financial authorization/randomness. A future on-chain read adapter can replace the source while preserving the UI.
+The wallet administrator owns every real financial decision and performs transfers manually outside this website. The backend only monitors public addresses, calculates threshold status and verifies submitted TXIDs. The frontend and backend have no private key, wallet connection, signing or transfer methods. Neither backend demo events nor local `Math.random()` may be reused as financial authorization or evidence of a transfer.
 
 The dark laboratory identity, Lorenz attractor, eight lore chapters and swipeable engine carousel are retained. Animations honor reduced motion and stop offscreen; canvas caps frame rate and pixel ratio. Keyboard navigation, skip links, focus styles, accessible controls and mobile table scrolling remain available.
 

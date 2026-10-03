@@ -8,10 +8,10 @@ import type { LoreVisualKind } from "@/lib/chaos-lore";
 
 const nodes = [[58, 95], [160, 48], [160, 170], [250, 110], [347, 45], [350, 180], [440, 110]];
 const captions = {
-  attractor: ["LORENZ SYSTEM", "σ 10 · ρ 28 · β 8/3", "ILLUSTRATIVE ORBIT / NOT MARKET DATA"],
-  network: ["INTERACTING VARIABLES", "HEAT / LIFE / INFORMATION", "CONCEPTUAL NETWORK / NO LIVE INPUTS"],
-  threshold: ["A DEFINED THRESHOLD", "INDEX → EVENT", "PROPOSED RULE / NOT A LIVE MEASUREMENT"],
-  pool: ["THE POSSIBLE OUTCOMES", "ONE SET / MULTIPLE PATHS", "FICTIONAL SPECIMENS / DEMO ONLY"],
+  attractor: ["LORENZ SYSTEM", "σ 10 · ρ 28 · β 8/3", "MATHEMATICAL VISUALIZATION"],
+  network: ["INTERACTING VARIABLES", "HEAT / LIFE / INFORMATION", "CONCEPTUAL SYSTEM MAP"],
+  threshold: ["A DEFINED THRESHOLD", "INDEX → EVENT", "INDEX EVENT THRESHOLD"],
+  pool: ["THE POSSIBLE OUTCOMES", "ONE SET / MULTIPLE PATHS", "ELIGIBLE MARKET SET"],
   butterfly: ["SENSITIVE DEPENDENCE", "δ₀ → DIVERGENCE", "SCHEMATIC TRAJECTORIES / NOT A FORECAST"],
 } as const;
 
@@ -40,7 +40,7 @@ export function LoreVisual({ kind }: { kind: Extract<LoreVisualKind, keyof typeo
         </>}
         {kind === "threshold" && <>
           <circle cx={250} cy={115} r={82} stroke="#38382f" /><motion.circle cx={250} cy={115} r={82} stroke="#f25b49" strokeDasharray="4 16" animate={movingLine} transition={{ duration: 8, repeat: Infinity, ease: "linear" }} />
-          <text x="250" y="120" fill="#eeede8" fontSize="49" textAnchor="middle" letterSpacing="-3">100<tspan fill="#f25b49" fontSize="23">%</tspan></text><text x="250" y="143" fill="#f25b49" fontSize="8" textAnchor="middle" letterSpacing="2">PLANNED EVENT THRESHOLD</text>
+          <text x="250" y="120" fill="#eeede8" fontSize="49" textAnchor="middle" letterSpacing="-3">100<tspan fill="#f25b49" fontSize="23">%</tspan></text><text x="250" y="143" fill="#f25b49" fontSize="8" textAnchor="middle" letterSpacing="2">INDEX EVENT THRESHOLD</text>
         </>}
         {kind === "pool" && <>
           {[65,190,315,440].map((x,i) => <g key={x}><motion.path d={`M250 43Q${x} 70 ${x} 142`} stroke="#f25b49" strokeOpacity={.45} strokeDasharray="3 9" animate={movingLine} transition={{ duration: 8 + i, repeat: Infinity, ease: "linear" }} /><circle cx={x} cy={160} r={21} stroke="#555548" /><text x={x} y={163} fill="#c0c0b1" textAnchor="middle" fontSize="9">0{i+1}</text></g>)}

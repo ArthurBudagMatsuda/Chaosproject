@@ -15,7 +15,7 @@ export function DocsSidebar({ items }: { items: { href: string; label: string }[
     <nav id="docs-navigation" className={`docs-navigation ${open ? "is-open" : ""}`} aria-label="Documentation sections">
       <p className="mono docs-nav-label">FIELD MANUAL / 001</p>
       {items.map((item, index) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined} onClick={() => setExpandedPath(null)}><span className="mono">{String(index + 1).padStart(2, "0")}</span>{item.label}</Link>)}
-      <div className="docs-sidebar-note mono"><span className="status-dot" />EVOLVING SPECIFICATION<br />FINANCIAL PROTOCOL NOT LIVE</div>
+      <div className="docs-sidebar-note mono"><span className="status-dot" />CURRENT SPECIFICATION<br />NON-CUSTODIAL SYSTEM</div>
     </nav>
   </aside>;
 }

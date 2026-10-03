@@ -17,12 +17,15 @@ O backend consulta DEX Screener, acompanha uma amostra de tokens Solana, aplica 
 
 Os endpoints `GET /api/chaos`, `GET /api/tokens` e `GET /api/events` leem os snapshots persistidos. Não iniciam consultas externas. Dados indisponíveis, em aquecimento ou antigos têm status explícito. Eventos de limiar são simulados.
 
+Uma camada financeira separada monitora `CHAOS_TOKEN_CA` e `FEE_WALLET_CA` via Solana RPC. O threshold começa em 5 SOL e calcula apenas disponibilidade e valor informativo. O painel protegido em `/admin` registra transferências feitas manualmente depois de verificar o TXID, origem, destino e valor. Eventos financeiros confirmados usam `simulated: false` e permanecem separados dos eventos do índice.
+
 ## Arquivos principais
 
 - `src/components/hero.tsx` e `attractor.tsx`: experiência principal e visualização.
 - `src/lib/chaos-simulation.ts`: estado da simulação local.
 - `src/lib/live-chaos-source.ts`: interface somente de leitura para o modo Live.
 - `src/server/market/`: scanner, provedor, filtros, cálculo, persistência e APIs.
+- `src/server/financial/`: configuração, RPC Solana, threshold, autenticação, verificação de TXID e persistência financeira.
 - `src/lib/docs-content.ts`: conteúdo editorial substituível da documentação.
 - `.env.example`: configuração disponível, sem segredos.
 - `README.md`: fórmula, limites dos dados e detalhes de operação.
@@ -44,4 +47,4 @@ O frontend e um worker contínuo devem compartilhar um diretório persistente de
 
 ## Limite financeiro
 
-Não existe smart contract, conexão com carteira, compra, assinatura ou distribuição real. O índice é uma métrica experimental do projeto, não uma medida científica de caos ou previsão de preço. O futuro programa Solana deve ser responsável por gatilhos financeiros, aleatoriedade verificável, seleção, distribuição e ciclos; o site deve apenas ler e exibir esses estados.
+Não existe smart contract próprio, conexão com carteira, compra, assinatura ou transferência automática. O administrador movimenta a fee wallet manualmente fora do site. O backend somente observa endereços públicos e registra uma distribuição após verificar sua transação na Solana. O índice continua sendo uma métrica experimental independente, não uma medida científica de caos, previsão de preço ou autoridade financeira.

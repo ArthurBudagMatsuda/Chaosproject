@@ -1,6 +1,7 @@
 import { getMarketConfig } from "./config.ts";
 import { MarketStore, publicSnapshot } from "./store.ts";
 import type { MarketSnapshot } from "../../lib/market-types.ts";
+import { readFinancialData } from "../financial/api.ts";
 
 type ApiCache = { expires: number; snapshot?: MarketSnapshot; pending?: Promise<MarketSnapshot>; windowStart: number; requests: number };
 const globals = globalThis as typeof globalThis & { chaosMarketApi?: ApiCache };
@@ -19,8 +20,12 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
     const snapshot = publicSnapshot(cache.snapshot!, config, now);
     // Consistent system metadata in every endpoint; /tokens and /events are focused views.
     const { events, components, ...system } = snapshot;
-    const data = kind === "events" ? { ...system, events } : kind === "tokens" ? system : { ...snapshot, components };
-    return Response.json(data, { headers: { "Cache-Control": "public, max-age=5, must-revalidate", "X-Data-Source": "dexscreener", "X-Metric-Type": "experimental", "X-Events-Simulated": "true" } });
+    let data: object = kind === "events" ? { ...system, events } : kind === "tokens" ? system : { ...snapshot, components };
+    if (kind === "events") {
+      const financial = await readFinancialData().catch(() => null);
+      data = { ...data, simulatedEvents: events, verifiedEvents: financial?.verifiedEvents ?? [], distributions: financial?.distributions ?? [] };
+    }
+    return Response.json(data, { headers: { "Cache-Control": "public, max-age=5, must-revalidate", "X-Data-Source": "dexscreener", "X-Metric-Type": "experimental", "X-Events-Simulated": "true", "X-Verified-Events": kind === "events" ? "included-separately" : "not-included" } });
   } catch {
     return Response.json({ error: "Market snapshot unavailable", chaosIndex: null, systemState: "UNAVAILABLE", eligibleTokenCount: 0, eligibleTokens: [], lastUpdate: null, nextEvaluation: null, eventStatus: "WAITING" }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "15" } });
   }

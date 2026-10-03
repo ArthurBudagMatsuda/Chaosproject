@@ -20,32 +20,32 @@ export const loreChapters = [
     note: "OBSERVE THE CONNECTIONS, NOT JUST THE POINTS",
   },
   {
-    number: "03", id: "lore-experiment", label: "THE EXPERIMENT", title: "A different", emphasis: "question.", visual: "experiment",
+    number: "03", id: "lore-experiment", label: "THE PRINCIPLE", title: "A different", emphasis: "question.", visual: "experiment",
     lead: "What if uncertainty became part of the design?",
     paragraphs: [
-      "CHAOS begins there. An experimental memecoin concept inspired by systems whose rules can be understood without making their futures easy to predict.",
-      "The proposed protocol would not try to forecast the market. Instead, a measure of instability and a separate source of verifiable randomness would become inputs to its mechanics. Instability would determine when an event becomes eligible; randomness would determine which eligible token is selected.",
-      "That distinction matters. Random selection is a design choice, not a proof of chaos. Today, a local simulation explores the idea while a read-only market service observes a sample of Solana tokens. The financial protocol has not been implemented.",
+      "CHAOS begins there: a Solana project inspired by systems whose rules can be understood without making their futures easy to predict.",
+      "The Chaos Index does not try to forecast the market. It describes one observed system, while a separate Solana monitor reads the public state of configured project addresses.",
+      "That distinction matters. The market service observes a sample of Solana tokens, and the financial service verifies transfers made manually by the wallet administrator. The website never executes them.",
     ],
-    note: "CURRENT STATE: MARKET OBSERVATION + VISUAL SIMULATION / FUTURE: FINANCIAL PROTOCOL",
+    note: "MARKET OBSERVATION + NON-CUSTODIAL MONITORING + FINANCIAL VERIFICATION",
   },
   {
     number: "04", id: "lore-engine", label: "THE CHAOS ENGINE", title: "A threshold,", emphasis: "not a forecast.", visual: "threshold",
     lead: "The Chaos Index gives the system a state to observe.",
     paragraphs: [
-      "The first experimental Chaos Index combines observed volatility, trading activity, changes in volume and liquidity, and price dispersion across eligible tokens. Each input is normalized onto a 0–100 scale. Its weights and calibration remain provisional: this is a project metric, not an established scientific measure of market chaos.",
-      "When the real index reaches 100%, the future blockchain program would trigger a Chaos Event under its rules. It would own the event, token selection and distribution. The website would only read and display the resulting state.",
-      "In Simulation Mode, you move the index yourself. At 100%, a local animation plays. Live Mode has no manual control: it reads the backend's DEX Screener observations and marks incomplete history as warming up. A healthy backend index reaching 100% records a simulated event. Neither mode initiates a financial distribution.",
+      "The Chaos Index combines observed volatility, trading activity, changes in volume and liquidity, and price dispersion across eligible tokens. Each input is normalized onto a 0–100 scale. This project-defined metric is not an established scientific measure of market chaos.",
+      "A complete, healthy index reaching 100% records an informational market event. Financial availability follows a separate fee-wallet threshold and never turns an index reading into authority to move funds.",
+      "The public interface reads the backend's DEX Screener observations and marks incomplete history as warming up. Index records remain separate from verified financial events and never initiate a distribution.",
     ],
-    note: "100% IS A PLANNED TRIGGER / IT IS NOT A PRICE SIGNAL",
+    note: "100% IS AN INFORMATIONAL INDEX EVENT / IT IS NOT FINANCIAL AUTHORITY",
   },
   {
     number: "05", id: "lore-pool", label: "THE CHAOS POOL", title: "A field of", emphasis: "possibilities.", visual: "pool",
     lead: "A possible outcome is not a promised winner.",
     paragraphs: [
-      "The proposed Chaos Pool would define the eligible Solana tokens from which an event could select an outcome. A first market-data filter now checks reported market cap, liquidity, 24-hour volume and selected-pair age. These configurable thresholds are a starting point, not permanent protocol rules.",
+      "The Chaos Pool describes the eligible Solana tokens observed by the market-data service. Its filter checks reported market cap, liquidity, 24-hour volume and selected-pair age using configurable thresholds.",
       "Membership would describe eligibility for the mechanism, not expected returns. A token entering the pool would not become a prediction, an endorsement or a claim about future price performance.",
-      "The displayed market pool contains provider-reported observations from a limited discovery sample, not a registered on-chain pool. Pair age is a proxy, not verified token age. The separate local simulation still selects fictional specimens. The boundary defines a possible set; it does not tell us what will perform well.",
+      "The displayed market pool contains provider-reported observations from a limited discovery sample, not a registered on-chain pool. Pair age is a proxy, not verified token age. The boundary defines an observed set; it does not tell us what will perform well.",
     ],
     note: "ELIGIBILITY DEFINES THE SET / IT DOES NOT PREDICT THE RESULT",
   },
@@ -61,25 +61,25 @@ export const loreChapters = [
   },
   {
     number: "07", id: "lore-cycle", label: "THE CYCLE", title: "An ending is", emphasis: "another beginning.", visual: "cycle",
-    lead: "The event is a transition, not the end of the experiment.",
+    lead: "The event is a transition, not the end of the cycle.",
     paragraphs: [
-      "The proposed cycle begins with observation. Resources accumulate while the system's instability is measured. The index may rise or fall; it is not a clock that must always move toward 100%.",
-      "At the threshold, a Chaos Event would begin. An eligible token would be selected through verifiable randomness. The program would distribute a portion of accumulated resources, reset the index and open a new cycle.",
-      "In the current demo, the same rhythm is only visual. You set the index, a fictional token is selected locally, a distribution animation plays, and the index returns to zero. No funds move. A new cycle waits for your next adjustment.",
+      "The operational cycle begins with observation. The Chaos Index may rise or fall independently while the configured fee wallet accumulates resources and approaches its own financial threshold.",
+      "At the financial threshold, the system marks a manual distribution as available. The administrator decides whether to act, transfers through the external wallet, and provides the TXID. Only an on-chain match becomes a verified record.",
+      "Once verification succeeds, the confirmed record becomes part of the financial history and the next threshold level becomes active. No automatic transaction is created at any stage.",
     ],
-    note: "DESIGN INTENT / NO LIVE CYCLES OR ON-CHAIN EVENTS ARE RUNNING",
+    note: "MANUAL TRANSFERS / ON-CHAIN VERIFICATION / NO AUTOMATIC EXECUTION",
   },
   {
-    number: "08", id: "lore-inside", label: "THE EXPERIMENT", title: "YOU ARE NOT WATCHING THE EXPERIMENT.", emphasis: "YOU ARE INSIDE IT.", visual: "ending",
+    number: "08", id: "lore-inside", label: "THE SYSTEM", title: "YOU ARE NOT WATCHING THE SYSTEM.", emphasis: "YOU ARE INSIDE IT.", visual: "ending",
     lead: "The interface is where the idea becomes observable.",
     paragraphs: [
-      "Change the simulated index. Observe the pattern as it shifts. Move it to its threshold and watch one visual cycle become the next.",
-      "Participation begins with attention, not a transaction. What exists today is an invitation to explore a system in development. What comes next must earn its place through implementation, evidence and observation.",
+      "Observe the market index as new measurements arrive. Follow the fee-wallet threshold and the verified records that define each completed financial cycle.",
+      "Participation begins with attention, not a transaction. CHAOS makes its data sources, operational boundaries and non-custodial architecture visible throughout the system.",
     ],
-    note: "EXPERIMENTAL MARKET OBSERVATORY / FINANCIAL PROTOCOL NOT IMPLEMENTED",
+    note: "SOLANA MARKET OBSERVATORY / NON-CUSTODIAL FINANCIAL MONITOR",
   },
 ] as const;
 
 export type LoreVisualKind = typeof loreChapters[number]["visual"];
 
-export const loreCycle = ["OBSERVE", "ACCUMULATE", "CHAOS RISES", "100%", "CHAOS EVENT", "RANDOM SELECTION", "DISTRIBUTION", "RESET", "NEW CYCLE"] as const;
+export const loreCycle = ["OBSERVE", "ACCUMULATE", "THRESHOLD", "ADMIN DECISION", "MANUAL TRANSFER", "SUBMIT TXID", "VERIFY", "RECORD EVENT", "NEXT THRESHOLD"] as const;

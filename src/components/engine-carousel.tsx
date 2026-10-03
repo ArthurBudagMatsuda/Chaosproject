@@ -2,17 +2,17 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Atom, AudioLines, Boxes, ChartNoAxesCombined, CircleDot, Gauge, GitBranch, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChartNoAxesCombined, CircleDot, Gauge, GitBranch, ScanSearch, ShieldCheck, WalletCards } from "lucide-react";
 
 const stages = [
   { title: "MARKET DATA", icon: ChartNoAxesCombined, description: "Inputs describe the system", detail: "The backend observes a sample of Solana tokens through DEX Screener. Prices, liquidity, volume and transaction counts become inputs, not predictions." },
-  { title: "CHAOS ENGINE", icon: AudioLines, description: "Experimental evaluation", detail: "The current backend combines five normalized components using configurable weights. Financial event execution remains a future blockchain-program responsibility." },
-  { title: "CHAOS INDEX", icon: Gauge, description: "Experimental instability score", detail: "The index expresses the project's metric from 0 to 100%. It can rise or fall. It is neither a scientific measure of market chaos nor a price forecast." },
-  { title: "100%", icon: CircleDot, description: "The event threshold is reached", detail: "At 100%, the future blockchain program would initiate a Chaos Event. The website would only observe that transition." },
-  { title: "CHAOS EVENT", icon: Atom, description: "Future program initiates the event", detail: "Today, a complete, healthy backend index reaching 100% records an explicitly simulated event. Real selection and distribution are not implemented." },
-  { title: "RANDOM TOKEN", icon: Boxes, description: "Selected from the Chaos Pool", detail: "Verifiable randomness would select an eligible token from the future pool. Selection would not imply expected returns or future price performance." },
-  { title: "DISTRIBUTION", icon: GitBranch, description: "Program distributes resources", detail: "The future blockchain program would distribute a portion of accumulated resources. This frontend neither signs transactions nor moves funds." },
-  { title: "NEW CYCLE", icon: RotateCcw, description: "Instability resets to zero", detail: "After the planned distribution, the program would reset the index and begin another cycle. In the current simulation, only the local display resets." },
+  { title: "CHAOS INDEX", icon: Gauge, description: "Market instability score", detail: "The index expresses the project's metric from 0 to 100%. It can rise or fall. It is neither a scientific measure of market chaos nor a price forecast." },
+  { title: "FEE WALLET", icon: WalletCards, description: "A public address is observed", detail: "A separate Solana RPC monitor reads the configured fee wallet balance and recent signatures. The website never receives the wallet's private key." },
+  { title: "THRESHOLD", icon: CircleDot, description: "Distribution availability is calculated", detail: "The financial threshold starts at a configurable 5 SOL. Reaching it only marks a manual distribution as available; it never initiates a transaction." },
+  { title: "ADMIN DECISION", icon: ShieldCheck, description: "The wallet operator decides", detail: "The administrator chooses whether and where to distribute. That decision and the transaction happen outside this website." },
+  { title: "MANUAL TRANSFER", icon: GitBranch, description: "Funds move through the external wallet", detail: "The wallet administrator sends SOL manually. CHAOS has no wallet connection, signing method, automatic treasury or custody capability." },
+  { title: "TX VERIFICATION", icon: ScanSearch, description: "The submitted TXID is checked", detail: "The backend verifies confirmation, configured source wallet, destination wallet and exact SOL amount directly through the Solana RPC." },
+  { title: "VERIFIED RECORD", icon: ShieldCheck, description: "The public history is updated", detail: "Only successful on-chain verification creates a confirmed distribution. Informational index records remain separate from verified financial events." },
 ];
 
 export function EngineCarousel() {
@@ -28,7 +28,7 @@ export function EngineCarousel() {
   };
 
   return <div className="engine-carousel" role="region" aria-roledescription="carousel" aria-label="Chaos Engine mechanism" tabIndex={0} onKeyDown={onKeyDown}>
-    <div className="engine-carousel-top mono"><span>PROPOSED MECHANISM / NOT LIVE</span><span aria-hidden="true">{String(active + 1).padStart(2, "0")} / 08</span></div>
+    <div className="engine-carousel-top mono"><span>NON-CUSTODIAL SYSTEM FLOW</span><span aria-hidden="true">{String(active + 1).padStart(2, "0")} / 08</span></div>
     <div className="engine-carousel-viewport">
       <motion.div className="engine-carousel-swipe" drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={reduced ? 0 : .12} style={{ touchAction: "pan-y" }} onDragEnd={(_, info) => {
         if (info.offset.x < -45 || info.velocity.x < -400) goTo(active + 1);

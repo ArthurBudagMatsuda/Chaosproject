@@ -39,7 +39,7 @@
 .docs-statuses { display: grid; gap: 12px; margin-top: 22px; }
 .docs-status { border: 1px solid var(--line); background: #0d0d0b; padding: 20px 22px; }
 .docs-status-label { display: inline-flex; padding: 3px 7px; font-size: 8px; border: 1px solid #f25b4940; color: var(--red); }
-.docs-status-label.status-live { border-color: #7da59650; color: #aec4b8; }
+.docs-status-label.status-active { border-color: #7da59650; color: #aec4b8; }
 .docs-status h3 { font-size: 15px; font-weight: 500; margin: 14px 0 8px; }
 .docs-status p { font-size: 13px; line-height: 1.8; color: var(--muted); margin: 0; }
 .docs-toc { position: sticky; top: 118px; align-self: start; border-left: 1px solid var(--line); padding-left: 19px; }

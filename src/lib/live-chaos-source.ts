@@ -14,7 +14,7 @@ export interface LiveChaosSnapshot {
 }
 
 // Read-only by design: no trigger, selection, wallet, signing, or distribution methods.
-// The future Solana program owns all financial transitions. The website observes them.
+// Financial transfers happen outside the website. This source only observes backend snapshots.
 export interface LiveChaosSource {
   readSnapshot(signal: AbortSignal): Promise<LiveChaosSnapshot>;
 }
