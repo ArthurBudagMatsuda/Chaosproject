@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { createAdminSession, getAdminAuthConfig, requestHasSameOrigin, verifyAdminCredentials, verifyAdminSession } from "../src/server/financial/auth.ts";
 import { getFinancialConfig } from "../src/server/financial/config.ts";
 import { monitorFinancialState } from "../src/server/financial/monitor.ts";
+import { SolanaProvider } from "../src/server/financial/solana-provider.ts";
 import { emptyFinancialState, FinancialStore, publicFinancialSnapshot } from "../src/server/financial/store.ts";
 import { calculateDistributionThreshold, thresholdAtLevel } from "../src/server/financial/threshold.ts";
 import { confirmDistribution, validateDistributionSubmission, verifyDistributionTransaction } from "../src/server/financial/verification.ts";
@@ -40,6 +41,22 @@ test("financial configuration is explicit and works before token or fee wallet a
   assert.throws(() => getFinancialConfig({ FEE_WALLET_CA: "invalid" }), /Invalid Solana address/);
 });
 
+test("Solana signature requests use the supported two-parameter RPC shape", async () => {
+  let payload;
+  const fetcher = async (_url, init) => {
+    payload = JSON.parse(init.body);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  const provider = new SolanaProvider(configured(), fetcher);
+  assert.deepEqual(await provider.getSignatures(token), []);
+  assert.deepEqual(payload, {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "getSignaturesForAddress",
+    params: [token, { limit: 10, commitment: "confirmed" }],
+  });
+});
+
 test("threshold math covers below, reached, percentage and progressive/custom levels", () => {
   const config = configured();
   const below = calculateDistributionThreshold(3.72, 0, config);
@@ -59,14 +76,26 @@ test("monitor records on-chain threshold milestone once and keeps simulated even
   assert.equal(second.snapshot.verifiedEvents.length, 1);
 });
 
+test("monitor preserves successful token fields when one RPC subrequest is rate limited", async () => {
+  const config = configured({ FEE_WALLET_CA: "" });
+  const partial = await monitorFinancialState(emptyFinancialState(config), reader({ getSignatures: async () => { throw new Error("HTTP 429"); } }), config, undefined, () => now);
+  assert.equal(partial.snapshot.status, "degraded");
+  assert.equal(partial.snapshot.token.supply, "1000000");
+  assert.equal(partial.snapshot.token.decimals, 6);
+  assert.equal(partial.snapshot.token.largestAccounts, 20);
+  assert.deepEqual(partial.snapshot.token.recentMovements, []);
+  assert.match(partial.snapshot.lastError, /Token signatures: HTTP 429/);
+});
+
 test("RPC failure preserves prior observations, reports degradation/unavailability and staleness", async () => {
   const config = configured();
   const healthy = await monitorFinancialState(emptyFinancialState(config), reader(), config, undefined, () => now);
   const offline = reader({ getBalance: async () => { throw new Error("RPC offline"); }, getTokenSupply: async () => { throw new Error("RPC offline"); } });
   const degraded = await monitorFinancialState(healthy, offline, config, undefined, () => now + 60_000);
   assert.equal(degraded.snapshot.status, "degraded"); assert.equal(degraded.snapshot.feeWallet.balanceSol, 5.4); assert.match(degraded.snapshot.lastError, /RPC offline/);
-  assert.equal(publicFinancialSnapshot(degraded.snapshot, config, now + config.staleAfterMs + 1).status, "stale");
-  const unavailable = await monitorFinancialState(emptyFinancialState(config), offline, config, undefined, () => now);
+  assert.equal(publicFinancialSnapshot(degraded.snapshot, config, now + 60_000 + config.staleAfterMs + 1).status, "stale");
+  const unavailableReader = reader({ getBalance: async () => { throw new Error("RPC offline"); }, getTokenSupply: async () => { throw new Error("RPC offline"); }, getTokenLargestAccounts: async () => { throw new Error("RPC offline"); }, getSignatures: async () => { throw new Error("RPC offline"); } });
+  const unavailable = await monitorFinancialState(emptyFinancialState(config), unavailableReader, config, undefined, () => now);
   assert.equal(unavailable.snapshot.status, "unavailable");
 });
 

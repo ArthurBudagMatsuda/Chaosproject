@@ -51,7 +51,7 @@ export class SolanaProvider implements SolanaReader {
   }
 
   async getSignatures(address: string, signal?: AbortSignal) {
-    const result = await this.call<Array<{ signature: string; slot: number; blockTime: number | null; err: unknown }>>("getSignaturesForAddress", [address, { limit: 10 }, "confirmed"], signal);
+    const result = await this.call<Array<{ signature: string; slot: number; blockTime: number | null; err: unknown }>>("getSignaturesForAddress", [address, { limit: 10, commitment: "confirmed" }], signal);
     return result.map(item => ({ signature: item.signature, slot: item.slot, timestamp: item.blockTime === null ? null : new Date(item.blockTime * 1000).toISOString(), successful: item.err === null }));
   }
 

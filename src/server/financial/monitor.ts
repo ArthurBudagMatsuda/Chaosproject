@@ -4,6 +4,11 @@ import type { FinancialConfig } from "./config.ts";
 import type { SolanaReader } from "./solana-provider.ts";
 import { calculateDistributionThreshold } from "./threshold.ts";
 
+async function observe<T>(label: string, request: () => Promise<T>, errors: string[]) {
+  try { return await request(); }
+  catch (error) { errors.push(`${label}: ${error instanceof Error ? error.message : "request failed"}`); return undefined; }
+}
+
 export async function monitorFinancialState(previous: FinancialState, reader: SolanaReader, config: FinancialConfig, signal?: AbortSignal, clock: () => number = Date.now): Promise<FinancialState> {
   const now = clock();
   const at = new Date(now).toISOString();
@@ -20,26 +25,31 @@ export async function monitorFinancialState(previous: FinancialState, reader: So
   let feeWallet = { ...previous.snapshot.feeWallet, address: config.feeWalletAddress, configured: walletConfigured };
 
   if (config.tokenAddress) {
-    try {
-      const [supply, largestAccounts, recentMovements] = await Promise.all([
-        reader.getTokenSupply(config.tokenAddress, signal),
-        reader.getTokenLargestAccounts(config.tokenAddress, signal),
-        reader.getSignatures(config.tokenAddress, signal),
-      ]);
-      token = { ...token, supply: supply.amount, decimals: supply.decimals, largestAccounts, recentMovements };
+    const supply = await observe("Token supply", () => reader.getTokenSupply(config.tokenAddress!, signal), errors);
+    const largestAccounts = await observe("Token accounts", () => reader.getTokenLargestAccounts(config.tokenAddress!, signal), errors);
+    const recentMovements = await observe("Token signatures", () => reader.getSignatures(config.tokenAddress!, signal), errors);
+    if (supply !== undefined || largestAccounts !== undefined || recentMovements !== undefined) {
+      token = {
+        ...token,
+        ...(supply === undefined ? {} : { supply: supply.amount, decimals: supply.decimals }),
+        ...(largestAccounts === undefined ? {} : { largestAccounts }),
+        ...(recentMovements === undefined ? {} : { recentMovements }),
+      };
       successes++;
-    } catch (error) { errors.push(error instanceof Error ? error.message : "Token monitoring failed"); }
+    }
   } else token = { address: null, configured: false, supply: null, decimals: null, largestAccounts: null, recentMovements: [] as OnChainMovement[] };
 
   if (config.feeWalletAddress) {
-    try {
-      const [balanceSol, recentMovements] = await Promise.all([
-        reader.getBalance(config.feeWalletAddress, signal),
-        reader.getSignatures(config.feeWalletAddress, signal),
-      ]);
-      feeWallet = { ...feeWallet, balanceSol, recentMovements };
+    const balanceSol = await observe("Fee-wallet balance", () => reader.getBalance(config.feeWalletAddress!, signal), errors);
+    const recentMovements = await observe("Fee-wallet signatures", () => reader.getSignatures(config.feeWalletAddress!, signal), errors);
+    if (balanceSol !== undefined || recentMovements !== undefined) {
+      feeWallet = {
+        ...feeWallet,
+        ...(balanceSol === undefined ? {} : { balanceSol }),
+        ...(recentMovements === undefined ? {} : { recentMovements }),
+      };
       successes++;
-    } catch (error) { errors.push(error instanceof Error ? error.message : "Fee wallet monitoring failed"); }
+    }
   } else feeWallet = { address: null, configured: false, balanceSol: null, recentMovements: [] as OnChainMovement[] };
 
   const threshold = calculateDistributionThreshold(feeWallet.balanceSol, previous.thresholdLevel, config);
