@@ -13,32 +13,36 @@ export function emptyState(config: MarketConfig): ScannerState {
   };
 }
 
+export function hydrateState(value: ScannerState, config: MarketConfig): ScannerState {
+  if (value.schemaVersion !== 1 || !value.snapshot || !value.candidates || !value.history) throw new Error("Invalid scanner state");
+  const base = emptyState(config);
+  const currentFormula = value.snapshot.formulaVersion === base.snapshot.formulaVersion;
+  return {
+    ...value,
+    thresholdLatched: currentFormula ? value.thresholdLatched : false,
+    snapshot: {
+      ...base.snapshot,
+      ...value.snapshot,
+      metric: base.snapshot.metric,
+      formulaVersion: base.snapshot.formulaVersion,
+      components: currentFormula ? value.snapshot.components : null,
+      activityScore: currentFormula ? value.snapshot.activityScore : null,
+      distributionReady: currentFormula ? value.snapshot.distributionReady : false,
+      tokenActivity: currentFormula ? value.snapshot.tokenActivity : [],
+      tokensWithSufficientData: currentFormula ? value.snapshot.tokensWithSufficientData : [],
+      componentWeights: base.snapshot.componentWeights,
+      dataCoverage: currentFormula ? value.snapshot.dataCoverage : base.snapshot.dataCoverage,
+    },
+  };
+}
+
 export class MarketStore {
   readonly directory: string;
   constructor(config: MarketConfig) { this.directory = resolve(config.dataDirectory); }
   async read(config: MarketConfig): Promise<ScannerState> {
     try {
       const value = JSON.parse(await readFile(join(this.directory, "state.json"), "utf8")) as ScannerState;
-      if (value.schemaVersion !== 1 || !value.snapshot || !value.candidates || !value.history) throw new Error("Invalid scanner state");
-      const base = emptyState(config);
-      const currentFormula = value.snapshot.formulaVersion === base.snapshot.formulaVersion;
-      return {
-        ...value,
-        thresholdLatched: currentFormula ? value.thresholdLatched : false,
-        snapshot: {
-          ...base.snapshot,
-          ...value.snapshot,
-          metric: base.snapshot.metric,
-          formulaVersion: base.snapshot.formulaVersion,
-          components: currentFormula ? value.snapshot.components : null,
-          activityScore: currentFormula ? value.snapshot.activityScore : null,
-          distributionReady: currentFormula ? value.snapshot.distributionReady : false,
-          tokenActivity: currentFormula ? value.snapshot.tokenActivity : [],
-          tokensWithSufficientData: currentFormula ? value.snapshot.tokensWithSufficientData : [],
-          componentWeights: base.snapshot.componentWeights,
-          dataCoverage: currentFormula ? value.snapshot.dataCoverage : base.snapshot.dataCoverage,
-        },
-      };
+      return hydrateState(value, config);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyState(config);
       throw error; // Never silently overwrite corrupt history or events.

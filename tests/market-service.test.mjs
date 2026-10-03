@@ -6,10 +6,11 @@ import { join } from "node:path";
 import { getMarketConfig } from "../src/server/market/config.ts";
 import { parsePair, canonicalTokens, isEligible } from "../src/server/market/pairs.ts";
 import { calculateChaosIndex, normalizeComponent, relativeActivity } from "../src/server/market/index-calculator.ts";
-import { emptyState, MarketStore, publicSnapshot } from "../src/server/market/store.ts";
+import { emptyState, hydrateState, MarketStore, publicSnapshot } from "../src/server/market/store.ts";
 import { scanMarket, reconcileThreshold } from "../src/server/market/scanner.ts";
 import { DexClient } from "../src/server/market/dex-client.ts";
 import { marketResponse } from "../src/server/market/api.ts";
+import { SERVERLESS_REFRESH_MS, stateNeedsRefresh } from "../src/server/market/state-service.ts";
 
 const now = Date.UTC(2026, 9, 2);
 const config = getMarketConfig({});
@@ -206,6 +207,16 @@ test("stale data disables distribution readiness and disk persistence remains at
     await unlock();
     assert.equal(JSON.parse(await readFile(join(directory, "state.json"), "utf8")).schemaVersion, 1);
   } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("serverless refresh keeps valid state and schedules only missing or expired observations", () => {
+  const state = emptyState(config);
+  assert.equal(stateNeedsRefresh(state, now), true);
+  state.snapshot.lastAttempt = new Date(now).toISOString();
+  assert.equal(stateNeedsRefresh(state, now + SERVERLESS_REFRESH_MS - 1), false);
+  assert.equal(stateNeedsRefresh(state, now + SERVERLESS_REFRESH_MS), true);
+  assert.equal(hydrateState(structuredClone(state), config).snapshot.formulaVersion, "activity-progression-v2");
+  assert.throws(() => hydrateState({ schemaVersion: 1 }, config), /Invalid scanner state/);
 });
 
 test("GET /api/chaos exposes progression, components, coverage and formula metadata", async () => {
