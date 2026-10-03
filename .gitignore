@@ -10,3 +10,4 @@ out/
 # Local verification screenshots (not application assets).
 /chaos-*.png
 /chaos-*.jpg
+.vercel
