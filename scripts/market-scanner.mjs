@@ -25,9 +25,17 @@ async function runMarket() {
   const scheduled = state.snapshot.nextEvaluation ? Date.parse(state.snapshot.nextEvaluation) : 0;
   if (!process.argv.includes("--once") && scheduled > Date.now()) await delay(scheduled - Date.now(), undefined, { signal: controller.signal });
   do {
-    state = await scanMarket(state, reader, config, controller.signal);
+    const financial = await financialStore.read(financialConfig);
+    const fees = {
+      balance: financial.snapshot.feeWallet.balanceSol,
+      minimumBalance: financial.snapshot.threshold.currentThreshold,
+      observedAt: financial.snapshot.lastUpdate,
+      previousBalance: state.snapshot.availableFeeBalance,
+      reliable: ["healthy", "partial"].includes(financial.snapshot.status),
+    };
+    state = await scanMarket(state, reader, config, controller.signal, Date.now, fees);
     await store.write(state);
-    console.log(JSON.stringify({ service: "market", status: state.snapshot.status, eligibleTokens: state.snapshot.eligibleTokenCount, chaosIndex: state.snapshot.chaosIndex, lastUpdate: state.snapshot.lastUpdate, nextEvaluation: state.snapshot.nextEvaluation, providerErrors: state.snapshot.coverage.errors }));
+    console.log(JSON.stringify({ service: "market", status: state.snapshot.status, eligibleTokens: state.snapshot.eligibleTokenCount, chaosIndex: state.snapshot.chaosIndex, activityScore: state.snapshot.activityScore, distributionReady: state.snapshot.distributionReady, lastUpdate: state.snapshot.lastUpdate, nextEvaluation: state.snapshot.nextEvaluation, providerErrors: state.snapshot.coverage.errors }));
     if (process.argv.includes("--once")) return state.snapshot.status !== "unavailable";
     await delay(Math.max(1000, Date.parse(state.snapshot.nextEvaluation) - Date.now()), undefined, { signal: controller.signal });
   } while (!controller.signal.aborted);

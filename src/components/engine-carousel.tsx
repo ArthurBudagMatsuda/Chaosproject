@@ -6,9 +6,9 @@ import { ArrowLeft, ArrowRight, ChartNoAxesCombined, CircleDot, Gauge, GitBranch
 
 const stages = [
   { title: "MARKET DATA", icon: ChartNoAxesCombined, description: "Inputs describe the system", detail: "The backend observes a sample of Solana tokens through DEX Screener. Prices, liquidity, volume and transaction counts become inputs, not predictions." },
-  { title: "CHAOS INDEX", icon: Gauge, description: "Market instability score", detail: "The index expresses the project's metric from 0 to 100%. It can rise or fall. It is neither a scientific measure of market chaos nor a price forecast." },
+  { title: "CHAOS INDEX", icon: Gauge, description: "Progress toward the next event", detail: "Seven configurable components combine real activity and fee observations into a deterministic 0–100 progression. It is neither a probability nor a price forecast." },
   { title: "FEE WALLET", icon: WalletCards, description: "A public address is observed", detail: "A separate Solana RPC monitor reads the configured fee wallet balance and recent signatures. The website never receives the wallet's private key." },
-  { title: "THRESHOLD", icon: CircleDot, description: "Distribution availability is calculated", detail: "The financial threshold starts at a configurable 5 SOL. Reaching it only marks a manual distribution as available; it never initiates a transaction." },
+  { title: "THRESHOLD", icon: CircleDot, description: "Event readiness is calculated", detail: "A CHAOS EVENT requires 100% progression and the configurable absolute fee minimum. Readiness is informational and never initiates a transaction." },
   { title: "ADMIN DECISION", icon: ShieldCheck, description: "The wallet operator decides", detail: "The administrator chooses whether and where to distribute. That decision and the transaction happen outside this website." },
   { title: "MANUAL TRANSFER", icon: GitBranch, description: "Funds move through the external wallet", detail: "The wallet administrator sends SOL manually. CHAOS has no wallet connection, signing method, automatic treasury or custody capability." },
   { title: "TX VERIFICATION", icon: ScanSearch, description: "The submitted TXID is checked", detail: "The backend verifies confirmation, configured source wallet, destination wallet and exact SOL amount directly through the Solana RPC." },

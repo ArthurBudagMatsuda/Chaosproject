@@ -23,6 +23,7 @@ export function parsePair(value: unknown, observedAt: string): MarketToken | nul
     priceUsd: numeric(pair.priceUsd),
     priceChange: { m5: numeric(changes.m5, true), h1: numeric(changes.h1, true), h6: numeric(changes.h6, true), h24: numeric(changes.h24, true) },
     transactions: { buys24h: numeric(txn.buys), sells24h: numeric(txn.sells) },
+    holders: null,
     pairCreatedAt: numeric(pair.pairCreatedAt), observedAt,
   };
 }

@@ -1,23 +1,23 @@
 import { randomUUID } from "node:crypto";
-import type { MarketToken, ScannerState } from "../../lib/market-types.ts";
+import type { FeeActivityInput, MarketToken, ScannerState } from "../../lib/market-types.ts";
 import type { MarketConfig } from "./config.ts";
 import { canonicalTokens, isEligible, isSolanaAddress, parsePair } from "./pairs.ts";
-import { calculateChaosIndex } from "./index-calculator.ts";
+import { calculateChaosIndex, progressionSystemState } from "./index-calculator.ts";
 import { emptyState } from "./store.ts";
 
 export interface MarketReader { get(path: string, signal?: AbortSignal): Promise<unknown>; readonly cooldownUntil?: number }
-export function reconcileThreshold(previous: ScannerState, index: number | null, ready: boolean, tokenCount: number, at: string, config: MarketConfig) {
+export function reconcileThreshold(previous: ScannerState, index: number | null, ready: boolean, distributionReady: boolean, tokenCount: number, at: string, config: MarketConfig, activityScore: number | null = null, fees?: FeeActivityInput) {
   let latched = previous.thresholdLatched;
   const events = [...previous.snapshot.events];
-  if (ready && index !== null && index < 100) latched = false;
-  if (ready && index === 100 && !latched) {
+  if (ready && index !== null && index < config.eventRearmThreshold) latched = false;
+  if (ready && distributionReady && index === 100 && !latched) {
     latched = true;
-    events.unshift({ id: randomUUID(), type: "CHAOS_EVENT_TRIGGERED", simulated: true, source: "backend-experimental-index", timestamp: at, chaosIndex: 100, eligibleTokenCount: tokenCount, selectedToken: null, distributionSol: null, transaction: null });
+    events.unshift({ id: randomUUID(), type: "CHAOS_EVENT_TRIGGERED", simulated: false, source: "chaos-index-v2", timestamp: at, chaosIndex: 100, activityScore, distributionReady: true, availableFeeBalance: fees?.balance ?? null, minimumDistributionBalance: fees?.minimumBalance ?? 0, eligibleTokenCount: tokenCount, selectedToken: null, distributionSol: null, transaction: null });
   }
-  return { events: events.slice(0, config.maxEvents), latched, eventStatus: ready && index === 100 && latched ? "SIMULATED_CHAOS_EVENT_TRIGGERED" as const : "WAITING" as const };
+  return { events: events.slice(0, config.maxEvents), latched, eventStatus: ready && distributionReady && index === 100 && latched ? "CHAOS_EVENT_TRIGGERED" as const : "WAITING" as const };
 }
 
-export async function scanMarket(previous: ScannerState, reader: MarketReader, config: MarketConfig, signal?: AbortSignal, clock: () => number = Date.now): Promise<ScannerState> {
+export async function scanMarket(previous: ScannerState, reader: MarketReader, config: MarketConfig, signal?: AbortSignal, clock: () => number = Date.now, fees?: FeeActivityInput): Promise<ScannerState> {
   const started = clock();
   const candidates = { ...previous.candidates };
   let errors = 0, successfulReads = 0;
@@ -74,18 +74,20 @@ export async function scanMarket(previous: ScannerState, reader: MarketReader, c
   const history = Object.fromEntries(Object.entries(previous.history).filter(([address]) => address in registry).map(([address, entries]) => [address, entries.filter(e => now - e.at <= config.historyWindowMs)]));
   for (const token of tokens) {
     const entries = history[token.tokenAddress] ?? [];
-    entries.push({ at: now, pairAddress: token.pairAddress, priceUsd: token.priceUsd, liquidity: token.liquidity, volume24h: token.volume24h });
+    const transactionCount = token.transactions.buys24h !== null && token.transactions.sells24h !== null ? token.transactions.buys24h + token.transactions.sells24h : null;
+    entries.push({ at: now, pairAddress: token.pairAddress, priceUsd: token.priceUsd, marketCap: token.marketCap, liquidity: token.liquidity, volume24h: token.volume24h, holders: token.holders ?? null, transactionCount });
     history[token.tokenAddress] = entries.slice(-1000);
   }
-  const result = calculateChaosIndex(eligibleTokens, history, config, now);
+  const result = calculateChaosIndex(eligibleTokens, history, config, now, fees);
   const ready = result.ready && errors === 0;
-  const threshold = reconcileThreshold(previous, result.chaosIndex, ready, eligibleTokens.length, at, config);
+  const distributionReady = ready && result.distributionReady;
+  const threshold = reconcileThreshold(previous, result.chaosIndex, ready, distributionReady, eligibleTokens.length, at, config, result.activityScore, fees);
   return { schemaVersion: 1, candidates: registry, history, thresholdLatched: threshold.latched,
     discoveryCursor: config.queries.length ? (previous.discoveryCursor + config.queriesPerScan) % config.queries.length : 0,
-    snapshot: { ...emptyState(config).snapshot, chaosIndex: result.chaosIndex, components: result.components,
+    snapshot: { ...emptyState(config).snapshot, chaosIndex: result.chaosIndex, activityScore: result.activityScore, distributionReady, availableFeeBalance: result.availableFeeBalance, minimumDistributionBalance: result.minimumDistributionBalance, nextEventThreshold: result.nextEventThreshold, components: result.components, componentWeights: result.componentWeights, dataCoverage: result.dataCoverage,
       status: errors ? "degraded" : result.ready ? "healthy" : "warming_up",
-      systemState: result.chaosIndex === null ? "INSUFFICIENT MARKET DATA" : result.chaosIndex >= 65 ? "HIGHLY UNSTABLE" : result.chaosIndex >= 35 ? "UNSTABLE" : "LOW INSTABILITY",
-      eligibleTokenCount: eligibleTokens.length, eligibleTokens, lastUpdate: at, lastAttempt: at, nextEvaluation,
+      systemState: progressionSystemState(result.chaosIndex, distributionReady),
+      eligibleTokenCount: eligibleTokens.length, eligibleTokens, tokenActivity: result.tokenActivity, tokensWithSufficientData: result.tokensWithSufficientData, lastUpdate: at, dataTimestamp: at, lastAttempt: at, nextEvaluation,
       eventStatus: threshold.eventStatus, events: threshold.events,
       coverage: { scope: "sampled-discovery-not-all-solana", discoveredTokenCount: Object.keys(registry).length, scannedTokenCount, observedPairCount: freshPairs.length, errors },
     },

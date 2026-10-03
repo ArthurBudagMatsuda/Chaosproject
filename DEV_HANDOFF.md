@@ -11,18 +11,18 @@
 
 ## Estado da entrega
 
-Homepage com identidade visual, narrativa, vórtice que cresce conforme o índice, carrossel do mecanismo e cursor padrão do navegador. A documentação possui `/docs` e oito páginas independentes. O modo de simulação mantém seu controle local; Live Mode lê o backend sem slider.
+Homepage com identidade visual, narrativa, vórtice que cresce conforme o índice, carrossel do mecanismo e cursor padrão do navegador. A documentação possui `/docs` e oito páginas independentes. A interface pública lê somente o backend e não possui controles de simulação.
 
-O backend consulta DEX Screener, acompanha uma amostra de tokens Solana, aplica filtros configuráveis e calcula um índice experimental com cinco componentes. Os endereços solicitados pelo projeto ficam em `src/server/market/seed-tokens.ts`; acompanhamento não garante elegibilidade.
+O backend consulta DEX Screener, acompanha uma amostra de tokens Solana, aplica filtros configuráveis e calcula a progressão para o CHAOS EVENT com sete componentes: fees, volume, market cap, liquidez, holders, transações e preço. A atividade é calculada por token e agregada pela mediana. Os endereços solicitados pelo projeto ficam em `src/server/market/seed-tokens.ts`; acompanhamento não garante elegibilidade.
 
-Os endpoints `GET /api/chaos`, `GET /api/tokens` e `GET /api/events` leem os snapshots persistidos. Não iniciam consultas externas. Dados indisponíveis, em aquecimento ou antigos têm status explícito. Eventos de limiar são simulados.
+Os endpoints `GET /api/chaos`, `GET /api/tokens` e `GET /api/events` leem os snapshots persistidos. Não iniciam consultas externas. Dados indisponíveis, em aquecimento ou antigos têm status explícito. Um CHAOS EVENT só é registrado quando o índice chega a 100, o saldo absoluto de taxas atende ao mínimo e as fontes estão confiáveis. O evento é informativo e não executa transações.
 
 Uma camada financeira separada monitora `CHAOS_TOKEN_CA` e `FEE_WALLET_CA` via Solana RPC. O threshold começa em 5 SOL e calcula apenas disponibilidade e valor informativo. O painel protegido em `/admin` registra transferências feitas manualmente depois de verificar o TXID, origem, destino e valor. Eventos financeiros confirmados usam `simulated: false` e permanecem separados dos eventos do índice.
 
 ## Arquivos principais
 
 - `src/components/hero.tsx` e `attractor.tsx`: experiência principal e visualização.
-- `src/lib/chaos-simulation.ts`: estado da simulação local.
+- `src/lib/chaos-simulation.ts`: utilitário legado isolado da fonte pública e do ledger financeiro.
 - `src/lib/live-chaos-source.ts`: interface somente de leitura para o modo Live.
 - `src/server/market/`: scanner, provedor, filtros, cálculo, persistência e APIs.
 - `src/server/financial/`: configuração, RPC Solana, threshold, autenticação, verificação de TXID e persistência financeira.
@@ -47,4 +47,4 @@ O frontend e um worker contínuo devem compartilhar um diretório persistente de
 
 ## Limite financeiro
 
-Não existe smart contract próprio, conexão com carteira, compra, assinatura ou transferência automática. O administrador movimenta a fee wallet manualmente fora do site. O backend somente observa endereços públicos e registra uma distribuição após verificar sua transação na Solana. O índice continua sendo uma métrica experimental independente, não uma medida científica de caos, previsão de preço ou autoridade financeira.
+Não existe smart contract próprio, conexão com carteira, compra, assinatura ou transferência automática. O administrador movimenta a fee wallet manualmente fora do site. O backend somente observa endereços públicos e registra uma distribuição após verificar sua transação na Solana. O índice representa progressão operacional, não uma medida científica de caos, previsão de preço ou autoridade financeira.

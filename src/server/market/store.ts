@@ -5,10 +5,11 @@ import type { MarketConfig } from "./config.ts";
 
 export function emptyState(config: MarketConfig): ScannerState {
   return { schemaVersion: 1, candidates: {}, history: {}, thresholdLatched: false, discoveryCursor: 0,
-    snapshot: { schemaVersion: 1, provenance: "dexscreener", metric: "experimental-project-metric", formulaVersion: "experimental-v1", status: "initializing", chaosIndex: null, systemState: "AWAITING MARKET DATA", eligibleTokenCount: 0, eligibleTokens: [], lastUpdate: null, lastAttempt: null, nextEvaluation: null, eventStatus: "WAITING", events: [], components: null,
+    snapshot: { schemaVersion: 1, provenance: "dexscreener", metric: "chaos-event-progression", formulaVersion: "activity-progression-v2", status: "initializing", chaosIndex: null, activityScore: null, distributionReady: false, availableFeeBalance: null, minimumDistributionBalance: 0, nextEventThreshold: 100, systemState: "AWAITING MARKET DATA", eligibleTokenCount: 0, eligibleTokens: [], tokenActivity: [], tokensWithSufficientData: [], lastUpdate: null, dataTimestamp: null, lastAttempt: null, nextEvaluation: null, eventStatus: "WAITING", events: [], components: null, componentWeights: { ...config.weights },
+      dataCoverage: { availableWeight: 0, totalWeight: Object.values(config.weights).reduce((sum, weight) => sum + weight, 0), ratio: 0, marketComponentsAvailable: 0, marketComponentsTotal: 6 },
       coverage: { scope: "sampled-discovery-not-all-solana", discoveredTokenCount: 0, scannedTokenCount: 0, observedPairCount: 0, errors: 0 },
       eligibility: { minMarketCapUsd: config.minMarketCapUsd, minLiquidityUsd: config.minLiquidityUsd, minVolume24hUsd: config.minVolume24hUsd, minAgeDays: config.minAgeDays, ageBasis: "pair-creation-time" },
-      warning: "Experimental project metric, not a scientific measure of market chaos or a price forecast. DEX Screener observations are not direct on-chain verification. All threshold events are simulated; no funds move." },
+      warning: "Project activity/progression metric, not a scientific measure of chaos, probability or price forecast. Index events never authorize or execute transfers." },
   };
 }
 
@@ -19,7 +20,25 @@ export class MarketStore {
     try {
       const value = JSON.parse(await readFile(join(this.directory, "state.json"), "utf8")) as ScannerState;
       if (value.schemaVersion !== 1 || !value.snapshot || !value.candidates || !value.history) throw new Error("Invalid scanner state");
-      return value;
+      const base = emptyState(config);
+      const currentFormula = value.snapshot.formulaVersion === base.snapshot.formulaVersion;
+      return {
+        ...value,
+        thresholdLatched: currentFormula ? value.thresholdLatched : false,
+        snapshot: {
+          ...base.snapshot,
+          ...value.snapshot,
+          metric: base.snapshot.metric,
+          formulaVersion: base.snapshot.formulaVersion,
+          components: currentFormula ? value.snapshot.components : null,
+          activityScore: currentFormula ? value.snapshot.activityScore : null,
+          distributionReady: currentFormula ? value.snapshot.distributionReady : false,
+          tokenActivity: currentFormula ? value.snapshot.tokenActivity : [],
+          tokensWithSufficientData: currentFormula ? value.snapshot.tokensWithSufficientData : [],
+          componentWeights: base.snapshot.componentWeights,
+          dataCoverage: currentFormula ? value.snapshot.dataCoverage : base.snapshot.dataCoverage,
+        },
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyState(config);
       throw error; // Never silently overwrite corrupt history or events.
@@ -53,6 +72,6 @@ export class MarketStore {
 }
 
 export function publicSnapshot(snapshot: MarketSnapshot, config: MarketConfig, now = Date.now()): MarketSnapshot {
-  if (snapshot.lastUpdate && now - Date.parse(snapshot.lastUpdate) > config.staleAfterMs) return { ...snapshot, status: "stale", systemState: "STALE MARKET DATA", eventStatus: "WAITING" };
+  if (snapshot.lastUpdate && now - Date.parse(snapshot.lastUpdate) > config.staleAfterMs) return { ...snapshot, status: "stale", systemState: "STALE MARKET DATA", distributionReady: false, eventStatus: "WAITING" };
   return snapshot;
 }

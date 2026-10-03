@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUpRight, Pause, Play } from "lucide-react";
 import { Attractor } from "./attractor";
-import { systemState } from "@/lib/chaos-data";
 import { Badge } from "./ui";
 import { useChaosIndex } from "@/hooks/use-chaos-index";
+import type { ComponentName } from "@/lib/market-types";
+
+const componentOrder: ComponentName[] = ["fees", "volume", "marketCap", "liquidity", "holders", "transactions", "price"];
+const componentLabels: Record<ComponentName, string> = { fees: "FEES", volume: "VOLUME", marketCap: "MARKET CAP", liquidity: "LIQUIDITY", holders: "HOLDERS", transactions: "TX ACTIVITY", price: "PRICE" };
 
 export function Hero() {
   const { live, liveError } = useChaosIndex();
@@ -19,15 +22,17 @@ export function Hero() {
       <h1 id="hero-title">CHAOS<span className="hero-title-period">.</span></h1>
       <p className="hero-subtitle">THE SYSTEM IS UNSTABLE.</p>
       <p className="hero-quote">Small changes can create massive consequences.</p>
-      <p className="mode-description mono">{liveError ? "MARKET SOURCE UNAVAILABLE" : live.provenance === "unconfigured" ? "AWAITING MARKET DATA" : live.provenance === "market-data" ? `DEX SCREENER · ${live.market?.status.replaceAll("_", " ").toUpperCase()} · READ-ONLY INDEX` : "READ-ONLY SOURCE DATA"}</p>
+      <p className="mode-description mono">{liveError ? "MARKET SOURCE UNAVAILABLE" : live.provenance === "unconfigured" ? "AWAITING MARKET DATA" : live.provenance === "market-data" ? `NEXT EVENT PROGRESS · DEX SCREENER + SOLANA RPC · ${live.market?.status.replaceAll("_", " ").toUpperCase()}` : "READ-ONLY SOURCE DATA"}</p>
       <div className="experiment-field">
         <Attractor index={index ?? 0} paused={paused || index === null} />
         <div className="field-corner top-left" /><div className="field-corner top-right" /><div className="field-corner bottom-left" /><div className="field-corner bottom-right" />
         <div className="field-annotation annotation-left mono"><span>LORENZ ATTRACTOR</span><span>σ 10 · ρ 28 · β 8/3</span><span className="annotation-rule" /></div>
-        <div className="index-display"><div className="index-label mono">CHAOS INDEX <Badge>{live.provenance === "market-data" ? "MARKET DATA" : "AWAITING DATA"}</Badge></div><div className="index-number" aria-label={`Read-only Chaos Index ${index === null ? "unavailable" : `${index.toFixed(2)} percent`}`}>{index === null ? "--" : index.toFixed(2)}<span>%</span></div><div className="state-label mono">CURRENT SYSTEM STATE</div><div className="state-value mono"><span className="status-dot" />{index === null ? live.market?.systemState ?? "AWAITING DATA SOURCE" : systemState(index)}</div>{live.provenance !== "unconfigured" && <div className="mono live-phase" role="status">{live.provenance === "market-data" ? (live.phase === "triggered" ? "INDEX THRESHOLD RECORDED / INFORMATIONAL ONLY" : `${live.market?.eligibleTokenCount ?? 0} ELIGIBLE TOKENS / READ ONLY`) : `REPORTED PHASE: ${live.phase.replaceAll("-", " ").toUpperCase()}`}</div>}</div>
+        <div className="index-display"><div className="index-label mono">CHAOS INDEX <Badge>{live.provenance === "market-data" ? "EVENT PROGRESS" : "AWAITING DATA"}</Badge></div><div className="index-number" aria-label={`Chaos Event progression ${index === null ? "unavailable" : `${index.toFixed(2)} percent`}`}>{index === null ? "--" : index.toFixed(2)}<span>%</span></div><div className="state-label mono">CURRENT SYSTEM STATE</div><div className="state-value mono"><span className="status-dot" />{live.market?.systemState ?? "AWAITING DATA SOURCE"}</div>{live.provenance !== "unconfigured" && <div className="mono live-phase" role="status">{live.market?.distributionReady ? "DISTRIBUTION READY / MANUAL EXECUTION" : `${live.market?.eligibleTokenCount ?? 0} ELIGIBLE TOKENS / DISTRIBUTION NOT READY`}</div>}</div>
         <div className="field-annotation annotation-right mono"><span>DETERMINISTIC SYSTEM</span><span>UNPREDICTABLE OUTCOME</span><span className="annotation-rule" /></div>
         <div className="field-bottom"><span className="mono">FIG. 01 — THE BUTTERFLY EFFECT</span><div className="field-actions"><button onClick={() => setPaused(!paused)} aria-label={paused ? "Resume particle animation" : "Pause particle animation"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button></div></div>
       </div>
+      {live.market?.components && <div className="index-contributions" aria-label="Chaos Index component scores">{componentOrder.map(name => { const component = live.market!.components![name]; return <div key={name}><span className="mono">{componentLabels[name]}</span><strong>{component.score === null ? "--" : component.score.toFixed(1)}</strong><small className="mono">WEIGHT {(component.weight * 100).toFixed(0)}% · COVERAGE {(component.coverage * 100).toFixed(0)}%</small></div>; })}</div>}
+      {live.market && <div className="index-readiness mono" role="status"><span>ACTIVITY SCORE: {live.market.activityScore === null ? "--" : `${live.market.activityScore.toFixed(2)}%`}</span><span>AVAILABLE FEES: {live.market.availableFeeBalance === null ? "--" : `${live.market.availableFeeBalance.toFixed(4)} SOL`}</span><span>MINIMUM: {live.market.minimumDistributionBalance.toFixed(4)} SOL</span><strong>{live.market.distributionReady ? "DISTRIBUTION READY" : "DISTRIBUTION NOT READY"}</strong></div>}
       <div className="hero-buttons"><a className="button primary" href="#engine">Explore the Chaos Engine <ArrowUpRight size={17} /></a><a href="#about" className="button secondary">Understand the theory <ArrowDown size={15} /></a></div>
     </div>
     <div className="hero-bottom container mono"><span>A SMALL CHANGE. AN ENTIRELY DIFFERENT FUTURE.</span><a href="#about">SCROLL TO OBSERVE <ArrowDown size={12} /></a></div>

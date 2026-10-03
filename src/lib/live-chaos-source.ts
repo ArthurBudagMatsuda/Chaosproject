@@ -25,13 +25,13 @@ export const unavailableSnapshot: LiveChaosSnapshot = {
 };
 
 // DEX Screener is an off-chain data provider, not direct on-chain verification.
-// Backend threshold events are explicitly simulated and never initiate distributions.
+// Backend threshold events are informational and never initiate distributions.
 export const liveChaosSource: LiveChaosSource = {
   async readSnapshot(signal) {
     const market = await readMarketSnapshot(signal);
     const usable = market.lastUpdate !== null && market.status !== "stale" && market.status !== "unavailable";
     return { provenance: "market-data", chaosIndex: usable ? market.chaosIndex : null,
-      phase: usable && market.eventStatus === "SIMULATED_CHAOS_EVENT_TRIGGERED" ? "triggered" : "measuring",
+      phase: usable && (market.eventStatus === "CHAOS_EVENT_TRIGGERED" || market.eventStatus === "SIMULATED_CHAOS_EVENT_TRIGGERED") ? "triggered" : "measuring",
       selectedToken: null, cycle: null, observedAt: market.lastUpdate, transaction: null, market };
   },
 };

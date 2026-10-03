@@ -1,7 +1,7 @@
 // Server/worker configuration. Never use NEXT_PUBLIC_ for credentials or scanner settings.
 import { projectSeedAddresses } from "./seed-tokens.ts";
 function number(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number, max = Infinity) {
-  const value = env[key] === undefined ? fallback : Number(env[key]);
+  const value = env[key] === undefined || env[key] === "" ? fallback : Number(env[key]);
   if (!Number.isFinite(value) || value < min || value > max) throw new Error(`Invalid configuration: ${key}`);
   return value;
 }
@@ -25,21 +25,27 @@ export function getMarketConfig(env: NodeJS.ProcessEnv = process.env) {
     maxComparisonGapMs: number(env, "CHAOS_MAX_COMPARISON_GAP_MINUTES", 20, 1) * 60_000,
     minPoolSize: Math.floor(number(env, "CHAOS_INDEX_MIN_POOL_SIZE", 2, 2)),
     minCoverage: number(env, "CHAOS_INDEX_MIN_COVERAGE", .6, .1, 1),
+    minAvailableWeight: number(env, "CHAOS_INDEX_MIN_AVAILABLE_WEIGHT", .6, .1, 1),
+    eventRearmThreshold: number(env, "CHAOS_EVENT_REARM_THRESHOLD", 99.99, 0, 99.999999),
+    feeGrowthScale: number(env, "CHAOS_SCALE_FEE_GROWTH_PERCENT", 25, .001),
     maxEvents: Math.floor(number(env, "CHAOS_MAX_EVENTS", 100, 1, 1000)),
-    // Raw values at which each component saturates at 100. These are design parameters, not scientific constants.
+    // Relative activity at which each component saturates. These are project progression parameters.
     scales: {
-      volatility: number(env, "CHAOS_SCALE_VOLATILITY_PERCENT", 5, .001),
-      tradingActivity: number(env, "CHAOS_SCALE_ACTIVITY_PER_MINUTE", 20, .001),
-      volumeChange: number(env, "CHAOS_SCALE_VOLUME_CHANGE_PERCENT", 30, .001),
-      liquidityChange: number(env, "CHAOS_SCALE_LIQUIDITY_CHANGE_PERCENT", 15, .001),
-      priceDispersion: number(env, "CHAOS_SCALE_DISPERSION_PERCENT", 20, .001),
+      volume: number(env, "CHAOS_SCALE_VOLUME_CHANGE_PERCENT", 30, .001),
+      marketCap: number(env, "CHAOS_SCALE_MARKET_CAP_CHANGE_PERCENT", 20, .001),
+      liquidity: number(env, "CHAOS_SCALE_LIQUIDITY_CHANGE_PERCENT", 15, .001),
+      holders: number(env, "CHAOS_SCALE_HOLDER_CHANGE_PERCENT", 20, .001),
+      transactions: number(env, "CHAOS_SCALE_TRANSACTION_CHANGE_PERCENT", 30, .001),
+      price: number(env, "CHAOS_SCALE_PRICE_VOLATILITY_PERCENT", 5, .001),
     },
     weights: {
-      volatility: number(env, "CHAOS_WEIGHT_VOLATILITY", .3, 0),
-      tradingActivity: number(env, "CHAOS_WEIGHT_ACTIVITY", .2, 0),
-      volumeChange: number(env, "CHAOS_WEIGHT_VOLUME", .2, 0),
-      liquidityChange: number(env, "CHAOS_WEIGHT_LIQUIDITY", .15, 0),
-      priceDispersion: number(env, "CHAOS_WEIGHT_DISPERSION", .15, 0),
+      fees: number(env, "CHAOS_WEIGHT_FEES", .25, 0),
+      volume: number(env, "CHAOS_WEIGHT_VOLUME", .25, 0),
+      marketCap: number(env, "CHAOS_WEIGHT_MARKET_CAP", .1, 0),
+      liquidity: number(env, "CHAOS_WEIGHT_LIQUIDITY", .1, 0),
+      holders: number(env, "CHAOS_WEIGHT_HOLDERS", .1, 0),
+      transactions: number(env, "CHAOS_WEIGHT_TRANSACTIONS", .1, 0),
+      price: number(env, "CHAOS_WEIGHT_PRICE", .1, 0),
     },
   };
 }

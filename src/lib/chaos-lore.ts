@@ -33,11 +33,11 @@ export const loreChapters = [
     number: "04", id: "lore-engine", label: "THE CHAOS ENGINE", title: "A threshold,", emphasis: "not a forecast.", visual: "threshold",
     lead: "The Chaos Index gives the system a state to observe.",
     paragraphs: [
-      "The Chaos Index combines observed volatility, trading activity, changes in volume and liquidity, and price dispersion across eligible tokens. Each input is normalized onto a 0–100 scale. This project-defined metric is not an established scientific measure of market chaos.",
-      "A complete, healthy index reaching 100% records an informational market event. Financial availability follows a separate fee-wallet threshold and never turns an index reading into authority to move funds.",
-      "The public interface reads the backend's DEX Screener observations and marks incomplete history as warming up. Index records remain separate from verified financial events and never initiate a distribution.",
+      "The Chaos Index combines fees, volume, market cap, liquidity, holders, transactions and price activity. Each available input is normalized onto a 0–100 scale, with missing weights redistributed instead of fabricated as zero.",
+      "A complete, healthy index reaching 100% records an informational market event only when the absolute fee-wallet minimum is also satisfied. High activity alone cannot mark a distribution as ready.",
+      "The public interface reads backend observations and marks incomplete or stale data explicitly. CHAOS EVENT records remain separate from verified financial transfers and never initiate a distribution.",
     ],
-    note: "100% IS AN INFORMATIONAL INDEX EVENT / IT IS NOT FINANCIAL AUTHORITY",
+    note: "100% + SUFFICIENT FEES = CHAOS EVENT / NEVER AUTOMATIC EXECUTION",
   },
   {
     number: "05", id: "lore-pool", label: "THE CHAOS POOL", title: "A field of", emphasis: "possibilities.", visual: "pool",
@@ -63,8 +63,8 @@ export const loreChapters = [
     number: "07", id: "lore-cycle", label: "THE CYCLE", title: "An ending is", emphasis: "another beginning.", visual: "cycle",
     lead: "The event is a transition, not the end of the cycle.",
     paragraphs: [
-      "The operational cycle begins with observation. The Chaos Index may rise or fall independently while the configured fee wallet accumulates resources and approaches its own financial threshold.",
-      "At the financial threshold, the system marks a manual distribution as available. The administrator decides whether to act, transfers through the external wallet, and provides the TXID. Only an on-chain match becomes a verified record.",
+      "The operational cycle begins with observation. Market activity may rise or fall while the configured fee wallet accumulates resources; together, the available signals determine progression toward the next event.",
+      "At 100% progression with sufficient absolute fees, the system records a CHAOS EVENT. The administrator still decides whether to act, transfers through the external wallet, and provides the TXID. Only an on-chain match becomes a verified record.",
       "Once verification succeeds, the confirmed record becomes part of the financial history and the next threshold level becomes active. No automatic transaction is created at any stage.",
     ],
     note: "MANUAL TRANSFERS / ON-CHAIN VERIFICATION / NO AUTOMATIC EXECUTION",
