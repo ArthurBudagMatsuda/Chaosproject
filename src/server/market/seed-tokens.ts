@@ -1,5 +1,5 @@
 // Project-requested Solana mint addresses, always included in scanner discovery.
-// Tracking does not bypass eligibility filters or imply protocol pool membership.
+// Explicit additions bypass automatic discovery thresholds once a real pair is observed.
 export const projectSeedAddresses = [
   "C1mBfBoDkwWfd6uTFZp62ARHLjeVp3bDpCDMfMZtPngE",
   "Ge87EtsjwRQbHaqQmKRno69RFTwh9bfSsm99XNxTpump",

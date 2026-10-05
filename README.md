@@ -42,19 +42,19 @@ Threshold calculation starts at `BASE_DISTRIBUTION_THRESHOLD_SOL=5`, uses `NEXT_
 
 Discovery combines latest token profiles, top boosts, rotating search queries, optional mint-address seeds and a bounded persistent address registry. Batches refresh up to 30 addresses. These DEX Screener endpoints do not expose an exhaustive Solana listing: **this is a sampled universe, not all Solana tokens**. Discovery can favor promoted tokens. Configure additional queries or known mint addresses to broaden coverage.
 
-Project-requested mint addresses live in `src/server/market/seed-tokens.ts` and are always included in discovery. `CHAOS_SEED_ADDRESSES` adds addresses to that list without duplicating them. Being tracked does not bypass eligibility: an address appears in the displayed pool only while its observed pair passes every configured filter. Restart the scanner after editing either list.
+Project-requested mint addresses live in `src/server/market/seed-tokens.ts` and are always included in discovery. `CHAOS_SEED_ADDRESSES` adds addresses to that list without duplicating them. These explicitly added Solana tokens bypass market cap, liquidity and volume thresholds once a real pair is observed. Explicit mint exclusions always take precedence. Restart the scanner after editing either list.
 
 One token counts once. Its highest-liquidity returned base-token pair supplies all metrics; ties use pair address. We do not sum duplicate market caps, use quote-token metrics, substitute FDV for missing market cap or fill missing observations with zero. Pair identity changes invalidate historical comparisons. Fields include mint address, symbol, name, pair/DEX, market cap, liquidity, 24h volume, USD price, price changes, 24h buy/sell counts, pair creation time and observation time.
 
-| Default eligibility | Environment variable |
+| Automatic discovery eligibility | Environment variable |
 | --- | --- |
 | Solana only | Fixed chain filter |
 | Market cap > $1,000,000 | `CHAOS_MIN_MARKET_CAP_USD` |
 | Pair liquidity > $250,000 | `CHAOS_MIN_LIQUIDITY_USD` |
 | Pair 24h volume > $100,000 | `CHAOS_MIN_VOLUME_24H_USD` |
-| Selected pair age ≥ 30 days | `CHAOS_MIN_AGE_DAYS` |
+| No minimum age | Legacy `CHAOS_MIN_AGE_DAYS` is ignored |
 
-**Pair creation time is a token-age proxy**, not verified mint creation time. Missing required fields or future timestamps fail eligibility. Representative-pair changes can change eligibility. These configurable filters are provisional, not claims of safety, establishment, investment merit or future returns.
+**Pair creation time is a token-age proxy**, not verified mint creation time. Missing required market fields fail automatic eligibility. Project-added tokens retain missing values as null. Representative-pair changes can change eligibility. These configurable filters are provisional, not claims of safety, establishment, investment merit or future returns.
 
 ## Chaos Index: activity progression v2
 

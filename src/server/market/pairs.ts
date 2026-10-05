@@ -37,10 +37,11 @@ export function canonicalTokens(pairs: MarketToken[]): MarketToken[] {
   return [...tokens.values()].sort((a,b) => a.tokenAddress.localeCompare(b.tokenAddress));
 }
 
-export function isEligible(token: MarketToken, config: MarketConfig, now: number): boolean {
-  return !config.excludedAddresses.includes(token.tokenAddress) && token.chainId === "solana" && token.marketCap !== null && token.marketCap > config.minMarketCapUsd
+export function isEligible(token: MarketToken, config: MarketConfig): boolean {
+  if (token.chainId !== "solana" || config.excludedAddresses.includes(token.tokenAddress)) return false;
+  // Explicit project additions bypass discovery thresholds, but still require a real observed pair.
+  if (config.seedAddresses.includes(token.tokenAddress)) return true;
+  return token.marketCap !== null && token.marketCap > config.minMarketCapUsd
     && token.liquidity !== null && token.liquidity > config.minLiquidityUsd
-    && token.volume24h !== null && token.volume24h > config.minVolume24hUsd
-    && token.pairCreatedAt !== null && token.pairCreatedAt > 0 && token.pairCreatedAt <= now
-    && now - token.pairCreatedAt >= config.minAgeDays * 86_400_000;
+    && token.volume24h !== null && token.volume24h > config.minVolume24hUsd;
 }

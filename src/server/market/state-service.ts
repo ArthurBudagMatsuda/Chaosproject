@@ -10,7 +10,8 @@ export const SERVERLESS_REFRESH_MS = 30 * 60_000;
 type MarketStateResult = { state: ScannerState; storage: "local-json" | "vercel-blob" };
 type RefreshGlobals = typeof globalThis & { chaosMarketRefresh?: Promise<ScannerState> };
 
-export function stateNeedsRefresh(state: ScannerState, now = Date.now(), refreshMs = SERVERLESS_REFRESH_MS) {
+export function stateNeedsRefresh(state: ScannerState, now = Date.now(), refreshMs = SERVERLESS_REFRESH_MS, config?: MarketConfig) {
+  if (config && (state.snapshot.eligibility.minAgeDays !== config.minAgeDays || config.seedAddresses.some(address => !config.excludedAddresses.includes(address) && !(address in state.candidates)))) return true;
   const timestamp = state.snapshot.lastAttempt ?? state.snapshot.lastUpdate;
   return !timestamp || !Number.isFinite(Date.parse(timestamp)) || now - Date.parse(timestamp) >= refreshMs;
 }
@@ -30,7 +31,7 @@ async function refresh(config: MarketConfig): Promise<ScannerState> {
   const store = new BlobMarketStore();
   const current = await store.read(config);
   const refreshMs = Math.max(config.scanIntervalMs, SERVERLESS_REFRESH_MS);
-  if (!stateNeedsRefresh(current.state, Date.now(), refreshMs)) return current.state;
+  if (!stateNeedsRefresh(current.state, Date.now(), refreshMs, config)) return current.state;
   const next = await scanMarket(current.state, new DexClient(config), config);
   try {
     await store.write(next, current.etag);

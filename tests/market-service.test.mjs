@@ -94,14 +94,27 @@ function saturatedHistory(tokens) {
   return Object.fromEntries(tokens.map(value => [value.tokenAddress, [observation({ pairAddress: value.pairAddress })]]));
 }
 
-test("eligibility uses strict USD thresholds, inclusive minimum pair age, and rejects missing fields", () => {
+test("automatic eligibility uses strict USD thresholds without an age requirement", () => {
   assert.equal(isEligible(token(), config, now), true);
-  for (const overrides of [{ marketCap: 1e6 }, { liquidity: { usd: 250000 } }, { volume: { h24: 100000 } }, { marketCap: undefined, fdv: 1e9 }, { pairCreatedAt: null }, { pairCreatedAt: now + 1 }, { pairCreatedAt: now - 29 * 86400000 }]) {
+  for (const overrides of [{ marketCap: 1e6 }, { liquidity: { usd: 250000 } }, { volume: { h24: 100000 } }, { marketCap: undefined, fdv: 1e9 }]) {
     assert.equal(isEligible(token(overrides), config, now), false);
   }
-  assert.equal(isEligible(token({ pairCreatedAt: now - 30 * 86400000 }), config, now), true);
+  for (const pairCreatedAt of [null, now, now - 86400000]) assert.equal(isEligible(token({ pairCreatedAt }), config), true);
+  assert.equal(getMarketConfig({ CHAOS_MIN_AGE_DAYS: "30" }).minAgeDays, 0);
   assert.equal(parsePair(pair({ chainId: "ethereum" }), "now"), null);
   assert.equal(parsePair(pair({ priceUsd: "NaN" }), "now").priceUsd, null);
+});
+
+test("explicit project additions bypass thresholds but not chain checks or exclusions", async () => {
+  const cfg = { ...config, seedAddresses: [address] };
+  const manuallyAdded = token({ marketCap: null, liquidity: { usd: 1 }, volume: { h24: 1 }, pairCreatedAt: null });
+  assert.equal(isEligible(manuallyAdded, cfg), true);
+  assert.equal(isEligible({ ...manuallyAdded, chainId: "ethereum" }, cfg), false);
+  assert.equal(isEligible(manuallyAdded, { ...cfg, excludedAddresses: [address] }), false);
+  const reader = { get: async path => path.startsWith("/tokens/") ? [pair({ marketCap: null, liquidity: { usd: 1 }, volume: { h24: 1 }, pairCreatedAt: null })] : path.includes("search") ? { pairs: [] } : [] };
+  const result = await scanMarket(emptyState(cfg), reader, cfg, undefined, () => now);
+  assert.equal(result.snapshot.eligibleTokenCount, 1);
+  assert.equal(result.snapshot.eligibleTokens[0].marketCap, null);
 });
 
 test("one token is counted once using its highest-liquidity pair", () => {
@@ -244,6 +257,11 @@ test("serverless refresh keeps valid state and schedules only missing or expired
   state.snapshot.lastAttempt = new Date(now).toISOString();
   assert.equal(stateNeedsRefresh(state, now + SERVERLESS_REFRESH_MS - 1), false);
   assert.equal(stateNeedsRefresh(state, now + SERVERLESS_REFRESH_MS), true);
+  assert.equal(stateNeedsRefresh(state, now, SERVERLESS_REFRESH_MS, config), true);
+  for (const seed of config.seedAddresses) state.candidates[seed] = now;
+  assert.equal(stateNeedsRefresh(state, now, SERVERLESS_REFRESH_MS, config), false);
+  state.snapshot.eligibility.minAgeDays = 30;
+  assert.equal(stateNeedsRefresh(state, now, SERVERLESS_REFRESH_MS, config), true);
   assert.equal(hydrateState(structuredClone(state), config).snapshot.formulaVersion, "activity-progression-v2");
   assert.throws(() => hydrateState({ schemaVersion: 1 }, config), /Invalid scanner state/);
 });

@@ -13,7 +13,8 @@ export function getMarketConfig(env: NodeJS.ProcessEnv = process.env) {
     minMarketCapUsd: number(env, "CHAOS_MIN_MARKET_CAP_USD", 1_000_000, 0),
     minLiquidityUsd: number(env, "CHAOS_MIN_LIQUIDITY_USD", 250_000, 0),
     minVolume24hUsd: number(env, "CHAOS_MIN_VOLUME_24H_USD", 100_000, 0),
-    minAgeDays: number(env, "CHAOS_MIN_AGE_DAYS", 30, 0),
+    // Retained in API metadata for compatibility; age no longer gates pool membership.
+    minAgeDays: 0,
     maxCandidates: Math.floor(number(env, "CHAOS_MAX_CANDIDATES", 300, 30, 3000)),
     queries: (env.CHAOS_DISCOVERY_QUERIES || "solana,SOL,USDC,BONK,WIF,RAY,POPCAT").split(",").map(s => s.trim()).filter(Boolean),
     excludedAddresses: [...new Set([...projectExcludedAddresses, ...(env.CHAOS_EXCLUDED_ADDRESSES || "").split(",").map(s => s.trim()).filter(Boolean)])],

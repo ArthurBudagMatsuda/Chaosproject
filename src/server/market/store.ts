@@ -76,6 +76,7 @@ export class MarketStore {
 }
 
 export function publicSnapshot(snapshot: MarketSnapshot, config: MarketConfig, now = Date.now()): MarketSnapshot {
+  snapshot = { ...snapshot, eligibility: { ...snapshot.eligibility, minAgeDays: config.minAgeDays } };
   const eligibleTokens = snapshot.eligibleTokens.filter(token => !config.excludedAddresses.includes(token.tokenAddress));
   if (eligibleTokens.length !== snapshot.eligibleTokens.length) {
     // Cached aggregates describe the old pool. Wait for a scan rather than publish a mismatched index.

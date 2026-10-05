@@ -5,7 +5,7 @@ import { readFinancialData } from "../financial/api.ts";
 import { calculateProgression, progressionSystemState } from "./index-calculator.ts";
 import { readMarketState, refreshBlobMarketState, SERVERLESS_REFRESH_MS, stateNeedsRefresh } from "./state-service.ts";
 
-type ApiCache = { expires: number; snapshot?: MarketSnapshot; storage?: "local-json" | "vercel-blob"; pending?: Promise<MarketSnapshot>; windowStart: number; requests: number };
+type ApiCache = { expires: number; snapshot?: MarketSnapshot; candidates?: Record<string, number>; storage?: "local-json" | "vercel-blob"; pending?: Promise<MarketSnapshot>; windowStart: number; requests: number };
 const globals = globalThis as typeof globalThis & { chaosMarketApi?: ApiCache };
 const cache = globals.chaosMarketApi ??= { expires: 0, windowStart: Date.now(), requests: 0 };
 
@@ -16,14 +16,15 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
   const config = getMarketConfig();
   try {
     if (!cache.snapshot || now >= cache.expires) {
-      cache.pending ??= readMarketState(config).then(result => { cache.snapshot = result.state.snapshot; cache.storage = result.storage; cache.expires = Date.now() + 5000; return result.state.snapshot; }).finally(() => { cache.pending = undefined; });
+      cache.pending ??= readMarketState(config).then(result => { cache.snapshot = result.state.snapshot; cache.candidates = result.state.candidates; cache.storage = result.storage; cache.expires = Date.now() + 5000; return result.state.snapshot; }).finally(() => { cache.pending = undefined; });
       await cache.pending;
     }
-    if (kind === "chaos" && cache.storage === "vercel-blob" && stateNeedsRefresh({ schemaVersion: 1, candidates: {}, history: {}, thresholdLatched: false, discoveryCursor: 0, snapshot: cache.snapshot! }, now, Math.max(config.scanIntervalMs, SERVERLESS_REFRESH_MS))) {
+    if (kind === "chaos" && cache.storage === "vercel-blob" && stateNeedsRefresh({ schemaVersion: 1, candidates: cache.candidates ?? {}, history: {}, thresholdLatched: false, discoveryCursor: 0, snapshot: cache.snapshot! }, now, Math.max(config.scanIntervalMs, SERVERLESS_REFRESH_MS), config)) {
       const { after } = await import("next/server.js");
       after(async () => {
         const state = await refreshBlobMarketState(config);
         cache.snapshot = state.snapshot;
+        cache.candidates = state.candidates;
         cache.expires = Date.now() + 5000;
       });
     }

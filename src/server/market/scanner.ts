@@ -70,7 +70,7 @@ export async function scanMarket(previous: ScannerState, reader: MarketReader, c
     return { ...previous, candidates: registry, snapshot: { ...previous.snapshot, lastAttempt: at, nextEvaluation, status: previous.snapshot.lastUpdate ? "degraded" : "unavailable", coverage: { ...previous.snapshot.coverage, errors }, eventStatus: "WAITING" } };
   }
   const tokens = canonicalTokens(freshPairs);
-  const eligibleTokens = tokens.filter(token => isEligible(token, config, now));
+  const eligibleTokens = tokens.filter(token => isEligible(token, config));
   const history = Object.fromEntries(Object.entries(previous.history).filter(([address]) => address in registry).map(([address, entries]) => [address, entries.filter(e => now - e.at <= config.historyWindowMs)]));
   for (const token of tokens) {
     const entries = history[token.tokenAddress] ?? [];
