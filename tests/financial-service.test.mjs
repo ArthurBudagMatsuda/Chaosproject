@@ -10,6 +10,8 @@ import { SolanaProvider } from "../src/server/financial/solana-provider.ts";
 import { emptyFinancialState, FinancialStore, publicFinancialSnapshot } from "../src/server/financial/store.ts";
 import { calculateDistributionThreshold, thresholdAtLevel } from "../src/server/financial/threshold.ts";
 import { confirmDistribution, validateDistributionSubmission, verifyDistributionTransaction } from "../src/server/financial/verification.ts";
+import { updateFinancialBlob } from "../src/server/financial/blob-store.ts";
+import { financialNeedsRefresh, refreshFinancialState } from "../src/server/financial/state-service.ts";
 
 const now = Date.UTC(2026, 9, 2);
 const wallet = "A".repeat(32);
@@ -39,6 +41,52 @@ test("financial configuration is explicit and works before token or fee wallet a
   assert.equal(state.snapshot.status, "not_configured");
   assert.equal(state.snapshot.token.configured, false); assert.equal(state.snapshot.feeWallet.configured, false);
   assert.throws(() => getFinancialConfig({ FEE_WALLET_CA: "invalid" }), /Invalid Solana address/);
+});
+
+test("financial monitoring refreshes expired/configuration-changed state and skips fresh RPC reads", async () => {
+  const config = configured();
+  let state = emptyFinancialState(config), requests = 0;
+  const store = { read: async () => state, update: async (_config, mutate) => { state = await mutate(state); return state; } };
+  const source = reader({ getBalance: async () => { requests++; return 5.4; } });
+  assert.equal(financialNeedsRefresh(state, config, now), true);
+  const first = await refreshFinancialState(store, source, config, now);
+  assert.equal(first.snapshot.status, "healthy");
+  await refreshFinancialState(store, source, config, now + 1000);
+  assert.equal(requests, 1);
+  await refreshFinancialState(store, source, config, now + config.monitorIntervalMs);
+  assert.equal(requests, 2);
+  assert.equal(financialNeedsRefresh(state, configured({ FEE_WALLET_CA: destination }), now), true);
+});
+
+test("Blob ledger retries a conflicting write on the latest state without losing another distribution", async () => {
+  const config = configured();
+  let state = emptyFinancialState(config), version = 0, writes = 0;
+  const conflict = new Error("fixture conflict");
+  const store = {
+    read: async () => ({ state: structuredClone(state), etag: String(version) }),
+    write: async (next, etag) => {
+      writes++;
+      if (writes === 1) { state.distributions.push({ txid: "concurrent-fixture" }); version++; throw conflict; }
+      assert.equal(etag, String(version)); state = next; version++;
+    },
+    isConflict: error => error === conflict,
+  };
+  const result = await updateFinancialBlob(store, config, current => ({ ...current, distributions: [...current.distributions, { txid: "new-fixture" }] }));
+  assert.equal(writes, 2);
+  assert.deepEqual(result.distributions.map(item => item.txid), ["concurrent-fixture", "new-fixture"]);
+  await assert.rejects(updateFinancialBlob({ ...store, write: async () => { throw new Error("storage failure"); } }, config, current => current), /storage failure/);
+});
+
+test("failed wallet refresh cannot reuse another wallet's balance or emit a threshold milestone", async () => {
+  const config = configured();
+  const previous = await monitorFinancialState(emptyFinancialState(config), reader(), config, undefined, () => now);
+  const changed = configured({ FEE_WALLET_CA: destination });
+  const result = await monitorFinancialState(previous, reader({ getBalance: async () => { throw new Error("fixture outage"); } }), changed, undefined, () => now + 60000);
+  assert.equal(result.snapshot.feeWallet.balanceSol, null);
+  assert.equal(result.snapshot.threshold.distributionAvailable, false);
+  assert.equal(result.snapshot.verifiedEvents.length, previous.snapshot.verifiedEvents.length);
+  const stale = publicFinancialSnapshot(previous.snapshot, config, now + config.staleAfterMs + 1);
+  assert.equal(stale.threshold.distributionAvailable, false);
 });
 
 test("Solana signature requests use the supported two-parameter RPC shape", async () => {

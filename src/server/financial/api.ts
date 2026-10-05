@@ -1,9 +1,10 @@
 import { getFinancialConfig } from "./config.ts";
-import { FinancialStore, publicFinancialSnapshot } from "./store.ts";
+import { publicFinancialSnapshot } from "./store.ts";
+import { readCurrentFinancialState } from "./state-service.ts";
 
 export async function readFinancialData(now = Date.now()) {
   const config = getFinancialConfig();
-  const state = await new FinancialStore(config).read(config);
+  const state = await readCurrentFinancialState(config);
   const snapshot = publicFinancialSnapshot(state.snapshot, config, now);
   return {
     ...snapshot,

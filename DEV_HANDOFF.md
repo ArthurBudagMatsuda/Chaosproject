@@ -48,3 +48,5 @@ O frontend e um worker contínuo devem compartilhar um diretório persistente de
 ## Limite financeiro
 
 Não existe smart contract próprio, conexão com carteira, compra, assinatura ou transferência automática. O administrador movimenta a fee wallet manualmente fora do site. O backend somente observa endereços públicos e registra uma distribuição após verificar sua transação na Solana. O índice representa progressão operacional, não uma medida científica de caos, previsão de preço ou autoridade financeira.
+
+Na Vercel, o Blob privado conectado persiste separadamente o estado de mercado e o financeiro. Leituras atualizam dados vencidos sob demanda; não há worker contínuo sem tráfego. As gravações financeiras usam ETags para preservar registros concorrentes. Configure CHAOS_TOKEN_CA e FEE_WALLET_CA para validar os endereços reais.

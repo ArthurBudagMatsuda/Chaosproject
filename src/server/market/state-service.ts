@@ -9,6 +9,10 @@ export const SERVERLESS_REFRESH_MS = 30 * 60_000;
 
 type MarketStateResult = { state: ScannerState; storage: "local-json" | "vercel-blob" };
 type RefreshGlobals = typeof globalThis & { chaosMarketRefresh?: Promise<ScannerState> };
+export class MarketRefreshError extends Error {
+  readonly code: "MARKET_SCAN_FAILED" | "MARKET_STORE_WRITE_FAILED" | "MARKET_STORE_CONFLICT";
+  constructor(code: MarketRefreshError["code"], cause?: unknown) { super(code, { cause }); this.code = code; }
+}
 
 export function stateNeedsRefresh(state: ScannerState, now = Date.now(), refreshMs = SERVERLESS_REFRESH_MS, config?: MarketConfig) {
   if (config && (state.snapshot.eligibility.minAgeDays !== config.minAgeDays || config.seedAddresses.some(address => !config.excludedAddresses.includes(address) && !(address in state.candidates)))) return true;
@@ -32,12 +36,17 @@ async function refresh(config: MarketConfig): Promise<ScannerState> {
   const current = await store.read(config);
   const refreshMs = Math.max(config.scanIntervalMs, SERVERLESS_REFRESH_MS);
   if (!stateNeedsRefresh(current.state, Date.now(), refreshMs, config)) return current.state;
-  const next = await scanMarket(current.state, new DexClient(config), config);
+  let next: ScannerState;
+  // Prioritize existing members and explicit additions within a bounded request budget.
+  try { next = await scanMarket(current.state, new DexClient(config), { ...config, maxCandidates: Math.min(config.maxCandidates, 120) }, AbortSignal.timeout(45_000)); }
+  catch (error) { throw new MarketRefreshError("MARKET_SCAN_FAILED", error); }
   try {
     await store.write(next, current.etag);
     return next;
   } catch (error) {
-    if (!isConcurrentBlobWrite(error)) throw error;
-    return (await store.read(config)).state;
+    if (!isConcurrentBlobWrite(error)) throw new MarketRefreshError("MARKET_STORE_WRITE_FAILED", error);
+    const latest = (await store.read(config)).state;
+    if (stateNeedsRefresh(latest, Date.now(), refreshMs, config)) throw new MarketRefreshError("MARKET_STORE_CONFLICT", error);
+    return latest;
   }
 }

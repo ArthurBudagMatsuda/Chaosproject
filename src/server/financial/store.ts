@@ -30,6 +30,11 @@ export function emptyFinancialState(config: FinancialConfig): FinancialState {
   };
 }
 
+export function validateFinancialState(value: FinancialState): FinancialState {
+  if (value?.schemaVersion !== 1 || !value.snapshot || !Array.isArray(value.distributions) || !Array.isArray(value.snapshot.verifiedEvents) || !Array.isArray(value.reachedThresholdLevels) || !Number.isInteger(value.thresholdLevel) || value.thresholdLevel < 0) throw new Error("Invalid financial state");
+  return value;
+}
+
 export class FinancialStore {
   readonly directory: string;
   private readonly statePath: string;
@@ -43,8 +48,7 @@ export class FinancialStore {
   async read(config: FinancialConfig): Promise<FinancialState> {
     try {
       const value = JSON.parse(await readFile(this.statePath, "utf8")) as FinancialState;
-      if (value.schemaVersion !== 1 || !value.snapshot || !Array.isArray(value.distributions) || !Array.isArray(value.snapshot.verifiedEvents)) throw new Error("Invalid financial state");
-      return value;
+      return validateFinancialState(value);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyFinancialState(config);
       throw error;
@@ -88,7 +92,7 @@ export class FinancialStore {
 
 export function publicFinancialSnapshot(snapshot: FinancialSnapshot, config: FinancialConfig, now = Date.now()): FinancialSnapshot {
   if (snapshot.lastUpdate && snapshot.status !== "not_configured" && now - Date.parse(snapshot.lastUpdate) > config.staleAfterMs) {
-    return { ...snapshot, status: "stale", lastError: "On-chain observations are older than the configured freshness limit" };
+    return { ...snapshot, status: "stale", threshold: { ...snapshot.threshold, distributionAvailable: false }, lastError: "On-chain observations are older than the configured freshness limit" };
   }
   return snapshot;
 }

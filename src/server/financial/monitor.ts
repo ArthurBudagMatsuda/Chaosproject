@@ -21,13 +21,18 @@ export async function monitorFinancialState(previous: FinancialState, reader: So
 
   let successes = 0;
   const errors: string[] = [];
-  let token = { ...previous.snapshot.token, address: config.tokenAddress, configured: tokenConfigured };
-  let feeWallet = { ...previous.snapshot.feeWallet, address: config.feeWalletAddress, configured: walletConfigured };
+  const tokenChanged = previous.snapshot.token.address !== config.tokenAddress;
+  const walletChanged = previous.snapshot.feeWallet.address !== config.feeWalletAddress;
+  let token = { ...(tokenChanged ? { supply: null, decimals: null, largestAccounts: null, recentMovements: [] } : previous.snapshot.token), address: config.tokenAddress, configured: tokenConfigured };
+  let feeWallet = { ...(walletChanged ? { balanceSol: null, recentMovements: [] } : previous.snapshot.feeWallet), address: config.feeWalletAddress, configured: walletConfigured };
+  let balanceObserved = false;
 
   if (config.tokenAddress) {
-    const supply = await observe("Token supply", () => reader.getTokenSupply(config.tokenAddress!, signal), errors);
-    const largestAccounts = await observe("Token accounts", () => reader.getTokenLargestAccounts(config.tokenAddress!, signal), errors);
-    const recentMovements = await observe("Token signatures", () => reader.getSignatures(config.tokenAddress!, signal), errors);
+    const [supply, largestAccounts, recentMovements] = await Promise.all([
+      observe("Token supply", () => reader.getTokenSupply(config.tokenAddress!, signal), errors),
+      observe("Token accounts", () => reader.getTokenLargestAccounts(config.tokenAddress!, signal), errors),
+      observe("Token signatures", () => reader.getSignatures(config.tokenAddress!, signal), errors),
+    ]);
     if (supply !== undefined || largestAccounts !== undefined || recentMovements !== undefined) {
       token = {
         ...token,
@@ -40,8 +45,11 @@ export async function monitorFinancialState(previous: FinancialState, reader: So
   } else token = { address: null, configured: false, supply: null, decimals: null, largestAccounts: null, recentMovements: [] as OnChainMovement[] };
 
   if (config.feeWalletAddress) {
-    const balanceSol = await observe("Fee-wallet balance", () => reader.getBalance(config.feeWalletAddress!, signal), errors);
-    const recentMovements = await observe("Fee-wallet signatures", () => reader.getSignatures(config.feeWalletAddress!, signal), errors);
+    const [balanceSol, recentMovements] = await Promise.all([
+      observe("Fee-wallet balance", () => reader.getBalance(config.feeWalletAddress!, signal), errors),
+      observe("Fee-wallet signatures", () => reader.getSignatures(config.feeWalletAddress!, signal), errors),
+    ]);
+    balanceObserved = balanceSol !== undefined;
     if (balanceSol !== undefined || recentMovements !== undefined) {
       feeWallet = {
         ...feeWallet,
@@ -53,6 +61,7 @@ export async function monitorFinancialState(previous: FinancialState, reader: So
   } else feeWallet = { address: null, configured: false, balanceSol: null, recentMovements: [] as OnChainMovement[] };
 
   const threshold = calculateDistributionThreshold(feeWallet.balanceSol, previous.thresholdLevel, config);
+  if (!balanceObserved || errors.length) threshold.distributionAvailable = false;
   const reachedThresholdLevels = [...previous.reachedThresholdLevels];
   const verifiedEvents = [...previous.snapshot.verifiedEvents];
   if (successes > 0 && threshold.distributionAvailable && !reachedThresholdLevels.includes(previous.thresholdLevel)) {
@@ -70,7 +79,7 @@ export async function monitorFinancialState(previous: FinancialState, reader: So
       token,
       feeWallet,
       threshold,
-      lastUpdate: successes ? at : previous.snapshot.lastUpdate,
+      lastUpdate: successes ? at : tokenChanged || walletChanged ? null : previous.snapshot.lastUpdate,
       lastAttempt: at,
       nextEvaluation,
       lastError: errors.length ? errors.join("; ") : null,

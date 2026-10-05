@@ -3,7 +3,7 @@ import { publicSnapshot } from "./store.ts";
 import type { MarketSnapshot } from "../../lib/market-types.ts";
 import { readFinancialData } from "../financial/api.ts";
 import { calculateProgression, progressionSystemState } from "./index-calculator.ts";
-import { readMarketState, refreshBlobMarketState, SERVERLESS_REFRESH_MS, stateNeedsRefresh } from "./state-service.ts";
+import { MarketRefreshError, readMarketState, refreshBlobMarketState, SERVERLESS_REFRESH_MS, stateNeedsRefresh } from "./state-service.ts";
 
 type ApiCache = { expires: number; snapshot?: MarketSnapshot; candidates?: Record<string, number>; storage?: "local-json" | "vercel-blob"; pending?: Promise<MarketSnapshot>; windowStart: number; requests: number };
 const globals = globalThis as typeof globalThis & { chaosMarketApi?: ApiCache };
@@ -20,13 +20,11 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
       await cache.pending;
     }
     if (kind === "chaos" && cache.storage === "vercel-blob" && stateNeedsRefresh({ schemaVersion: 1, candidates: cache.candidates ?? {}, history: {}, thresholdLatched: false, discoveryCursor: 0, snapshot: cache.snapshot! }, now, Math.max(config.scanIntervalMs, SERVERLESS_REFRESH_MS), config)) {
-      const { after } = await import("next/server.js");
-      after(async () => {
-        const state = await refreshBlobMarketState(config);
-        cache.snapshot = state.snapshot;
-        cache.candidates = state.candidates;
-        cache.expires = Date.now() + 5000;
-      });
+      // Finish and persist a due scan within the request lifecycle.
+      const state = await refreshBlobMarketState(config);
+      cache.snapshot = state.snapshot;
+      cache.candidates = state.candidates;
+      cache.expires = Date.now() + 5000;
     }
     const freshnessConfig = cache.storage === "vercel-blob" ? { ...config, staleAfterMs: Math.max(config.staleAfterMs, SERVERLESS_REFRESH_MS * 2) } : config;
     let snapshot = publicSnapshot(cache.snapshot!, freshnessConfig, now);
@@ -51,7 +49,8 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
       data = { ...data, indexEvents: events, simulatedEvents: events.filter(event => event.simulated), verifiedEvents: financial?.verifiedEvents ?? [], distributions: financial?.distributions ?? [] };
     }
     return Response.json(data, { headers: { "Cache-Control": "public, max-age=5, must-revalidate", "X-Data-Source": "dexscreener+solana-rpc", "X-State-Store": cache.storage ?? "unknown", "X-Metric-Type": "activity-progression", "X-Index-Events": "informational-non-custodial", "X-Verified-Events": kind === "events" ? "included-separately" : "not-included" } });
-  } catch {
-    return Response.json({ error: "Market snapshot unavailable", chaosIndex: null, activityScore: null, distributionReady: false, availableFeeBalance: null, minimumDistributionBalance: 0, nextEventThreshold: 100, systemState: "UNAVAILABLE", eligibleTokenCount: 0, eligibleTokens: [], tokenActivity: [], tokensWithSufficientData: [], lastUpdate: null, nextEvaluation: null, eventStatus: "WAITING", components: null }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "15" } });
+  } catch (error) {
+    console.error("CHAOS market refresh failed", error);
+    return Response.json({ error: "Market snapshot unavailable", code: error instanceof MarketRefreshError ? error.code : "MARKET_STATE_UNAVAILABLE", chaosIndex: null, activityScore: null, distributionReady: false, availableFeeBalance: null, minimumDistributionBalance: 0, nextEventThreshold: 100, systemState: "UNAVAILABLE", eligibleTokenCount: 0, eligibleTokens: [], tokenActivity: [], tokensWithSufficientData: [], lastUpdate: null, nextEvaluation: null, eventStatus: "WAITING", components: null }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "15" } });
   }
 }
