@@ -448,3 +448,7 @@ h2 { font-size: clamp(34px, 4vw, 50px); font-weight: 500; line-height: 1.15; let
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.contract-address { max-width: 100%; }
+.contract-address svg { flex-shrink: 0; }
+.contract-address span { min-width: 0; overflow-wrap: anywhere; }
