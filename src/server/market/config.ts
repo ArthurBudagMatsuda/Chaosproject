@@ -1,5 +1,5 @@
 // Server/worker configuration. Never use NEXT_PUBLIC_ for credentials or scanner settings.
-import { projectSeedAddresses } from "./seed-tokens.ts";
+import { projectSeedAddresses, projectExcludedAddresses } from "./seed-tokens.ts";
 function number(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number, max = Infinity) {
   const value = env[key] === undefined || env[key] === "" ? fallback : Number(env[key]);
   if (!Number.isFinite(value) || value < min || value > max) throw new Error(`Invalid configuration: ${key}`);
@@ -15,7 +15,8 @@ export function getMarketConfig(env: NodeJS.ProcessEnv = process.env) {
     minVolume24hUsd: number(env, "CHAOS_MIN_VOLUME_24H_USD", 100_000, 0),
     minAgeDays: number(env, "CHAOS_MIN_AGE_DAYS", 30, 0),
     maxCandidates: Math.floor(number(env, "CHAOS_MAX_CANDIDATES", 300, 30, 3000)),
-    queries: (env.CHAOS_DISCOVERY_QUERIES || "solana,SOL,USDC,BONK,WIF,JUP,RAY,POPCAT").split(",").map(s => s.trim()).filter(Boolean),
+    queries: (env.CHAOS_DISCOVERY_QUERIES || "solana,SOL,USDC,BONK,WIF,RAY,POPCAT").split(",").map(s => s.trim()).filter(Boolean),
+    excludedAddresses: [...new Set([...projectExcludedAddresses, ...(env.CHAOS_EXCLUDED_ADDRESSES || "").split(",").map(s => s.trim()).filter(Boolean)])],
     seedAddresses: [...new Set([...projectSeedAddresses, ...(env.CHAOS_SEED_ADDRESSES || "").split(",").map(s => s.trim()).filter(Boolean)])],
     queriesPerScan: Math.floor(number(env, "CHAOS_QUERIES_PER_SCAN", 4, 1, 10)),
     requestGapMs: number(env, "CHAOS_PROVIDER_REQUEST_GAP_MS", 1600, 1100),

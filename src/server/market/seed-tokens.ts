@@ -13,3 +13,8 @@ export const projectSeedAddresses = [
   "A13oRB9FFaiUjfi6LdCg6p9ka1u8SfGkUFs4SKvPpump",
   "CJMihkPYswa3k6az9SUbepjKnkJQ6KWpGG5p9qW9n7NV",
 ] as const;
+
+// Explicit project exclusions use mint addresses, never mutable ticker symbols.
+export const projectExcludedAddresses = [
+  "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", // Jupiter (JUP)
+] as const;

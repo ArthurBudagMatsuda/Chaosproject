@@ -16,6 +16,35 @@ const now = Date.UTC(2026, 9, 2);
 const config = getMarketConfig({});
 const address = "A".repeat(32), pairAddress = "B".repeat(32);
 
+test("JUP is excluded by mint from eligibility, discovery, and cached pool responses", async () => {
+  const jupAddress = "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN";
+  const jupPair = pair({ baseToken: { address: jupAddress, symbol: "JUP", name: "Jupiter" } });
+  const jup = parsePair(jupPair, new Date(now).toISOString());
+  assert.equal(isEligible(jup, config, now), false);
+  assert.equal(isEligible(token({ baseToken: { address, symbol: "JUP", name: "Unrelated mint" } }), config, now), true);
+  const previous = emptyState(config);
+  previous.candidates[jupAddress] = now;
+  previous.snapshot.eligibleTokens = [jup, token()];
+  previous.snapshot.eligibleTokenCount = 2;
+  previous.snapshot.chaosIndex = 80;
+  const cached = publicSnapshot(previous.snapshot, config, now);
+  assert.equal(cached.eligibleTokenCount, 1);
+  assert.equal(cached.chaosIndex, null);
+  assert.equal(cached.distributionReady, false);
+  const requests = [];
+  const reader = { get: async path => {
+    requests.push(path);
+    return path.startsWith("/tokens/") ? [jupPair, pair()] : path.includes("search") ? { pairs: [jupPair, pair()] } : [{ chainId: "solana", tokenAddress: jupAddress }];
+  } };
+  const scanned = await scanMarket(previous, reader, config, undefined, () => now);
+  assert.equal(scanned.snapshot.eligibleTokenCount, 1);
+  assert.equal(jupAddress in scanned.candidates, false);
+  assert.ok(requests.filter(path => path.startsWith("/tokens/")).every(path => !path.includes(jupAddress)));
+  const extra = getMarketConfig({ CHAOS_EXCLUDED_ADDRESSES: address });
+  assert.equal(isEligible(token(), extra, now), false);
+  assert.ok(extra.excludedAddresses.includes(jupAddress));
+});
+
 function pair(overrides = {}) {
   return {
     chainId: "solana",

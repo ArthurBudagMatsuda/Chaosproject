@@ -38,7 +38,7 @@ export function canonicalTokens(pairs: MarketToken[]): MarketToken[] {
 }
 
 export function isEligible(token: MarketToken, config: MarketConfig, now: number): boolean {
-  return token.chainId === "solana" && token.marketCap !== null && token.marketCap > config.minMarketCapUsd
+  return !config.excludedAddresses.includes(token.tokenAddress) && token.chainId === "solana" && token.marketCap !== null && token.marketCap > config.minMarketCapUsd
     && token.liquidity !== null && token.liquidity > config.minLiquidityUsd
     && token.volume24h !== null && token.volume24h > config.minVolume24hUsd
     && token.pairCreatedAt !== null && token.pairCreatedAt > 0 && token.pairCreatedAt <= now

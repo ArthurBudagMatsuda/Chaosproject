@@ -76,6 +76,15 @@ export class MarketStore {
 }
 
 export function publicSnapshot(snapshot: MarketSnapshot, config: MarketConfig, now = Date.now()): MarketSnapshot {
+  const eligibleTokens = snapshot.eligibleTokens.filter(token => !config.excludedAddresses.includes(token.tokenAddress));
+  if (eligibleTokens.length !== snapshot.eligibleTokens.length) {
+    // Cached aggregates describe the old pool. Wait for a scan rather than publish a mismatched index.
+    snapshot = { ...snapshot, eligibleTokens, eligibleTokenCount: eligibleTokens.length,
+      tokenActivity: snapshot.tokenActivity.filter(token => !config.excludedAddresses.includes(token.tokenAddress)),
+      tokensWithSufficientData: snapshot.tokensWithSufficientData.filter(token => !config.excludedAddresses.includes(token.tokenAddress)),
+      chaosIndex: null, activityScore: null, components: null, distributionReady: false,
+      status: "warming_up", systemState: "AWAITING POOL RE-EVALUATION", eventStatus: "WAITING" };
+  }
   if (snapshot.lastUpdate && now - Date.parse(snapshot.lastUpdate) > config.staleAfterMs) return { ...snapshot, status: "stale", systemState: "STALE MARKET DATA", distributionReady: false, eventStatus: "WAITING" };
   return snapshot;
 }

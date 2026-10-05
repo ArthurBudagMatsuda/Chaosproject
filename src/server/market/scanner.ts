@@ -19,9 +19,9 @@ export function reconcileThreshold(previous: ScannerState, index: number | null,
 
 export async function scanMarket(previous: ScannerState, reader: MarketReader, config: MarketConfig, signal?: AbortSignal, clock: () => number = Date.now, fees?: FeeActivityInput): Promise<ScannerState> {
   const started = clock();
-  const candidates = { ...previous.candidates };
+  const candidates = Object.fromEntries(Object.entries(previous.candidates).filter(([address]) => !config.excludedAddresses.includes(address)));
   let errors = 0, successfulReads = 0;
-  const discover = (address: unknown) => { if (isSolanaAddress(address)) candidates[address] = started; };
+  const discover = (address: unknown) => { if (isSolanaAddress(address) && !config.excludedAddresses.includes(address)) candidates[address] = started; };
   config.seedAddresses.forEach(discover);
   for (const path of ["/token-profiles/latest/v1", "/token-boosts/top/v1"]) {
     try {
@@ -46,7 +46,7 @@ export async function scanMarket(previous: ScannerState, reader: MarketReader, c
     if (signal?.aborted) throw signal.reason;
   }
   // Existing eligible tokens are retained first; remaining capacity favors recently discovered addresses.
-  const prioritized = [...new Set([...previous.snapshot.eligibleTokens.map(t => t.tokenAddress), ...config.seedAddresses.filter(isSolanaAddress), ...Object.keys(candidates).sort((a,b) => candidates[b] - candidates[a])])].slice(0, config.maxCandidates);
+  const prioritized = [...new Set([...previous.snapshot.eligibleTokens.map(t => t.tokenAddress), ...config.seedAddresses.filter(isSolanaAddress), ...Object.keys(candidates).sort((a,b) => candidates[b] - candidates[a])])].filter(address => !config.excludedAddresses.includes(address)).slice(0, config.maxCandidates);
   const registry = Object.fromEntries(prioritized.map(address => [address, candidates[address] ?? started]));
   const freshPairs: MarketToken[] = [];
   let scannedTokenCount = 0;
