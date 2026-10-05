@@ -12,6 +12,13 @@ export const projectSeedAddresses = [
   "6UtY9iTZMQQ5QZVrbzFnNaJntV7oySm9k97mvwnuZcxr",
   "A13oRB9FFaiUjfi6LdCg6p9ka1u8SfGkUFs4SKvPpump",
   "CJMihkPYswa3k6az9SUbepjKnkJQ6KWpGG5p9qW9n7NV",
+  "CscZaq5twomhUkvCY8Jdd1tge32L4Yj9FbkFFEZQpump",
+  "8nPoBHiBM6pybxMws9PA2JRb9BjkppBfqcZGmot4DMBC",
+  "Aqv8Gj8MesSzuEsgigq4kEDWVRFHgPUZq4Po4Q1Mpump",
+  "7VertkgF9KLhxxJXHX6uaWuoYZTP9LdGj2bWmVXVpump",
+  "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump",
+  "5tCju6YNxHq5zrA6tGndr6F7TK42mpUFmeE31cSFpump",
+  "GTBxUiw6wJdmmkCGZgRHLyYxqu1vG4KtRpeox6yDpump",
 ] as const;
 
 // Explicit project exclusions use mint addresses, never mutable ticker symbols.
