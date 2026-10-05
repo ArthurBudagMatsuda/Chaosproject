@@ -1,7 +1,8 @@
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobPreconditionFailedError, put } from "@vercel/blob";
 import type { ScannerState } from "../../lib/market-types.ts";
 import type { MarketConfig } from "./config.ts";
 import { emptyState, hydrateState } from "./store.ts";
+import { readVersionedBlob } from "../blob-state.ts";
 
 const STATE_PATH = "chaos/market-state.json";
 
@@ -16,11 +17,10 @@ export function hasBlobMarketStore(env: NodeJS.ProcessEnv = process.env) {
 
 export class BlobMarketStore {
   async read(config: MarketConfig): Promise<VersionedMarketState> {
-    const result = await get(STATE_PATH, { access: "private", useCache: false });
+    const result = await readVersionedBlob(STATE_PATH);
     if (!result) return { state: emptyState(config), etag: null };
-    if (result.statusCode !== 200 || !result.stream) throw new Error("Unable to read market state from Blob");
-    const value = JSON.parse(await new Response(result.stream).text()) as ScannerState;
-    return { state: hydrateState(value, config), etag: result.blob.etag };
+    const value = JSON.parse(result.content) as ScannerState;
+    return { state: hydrateState(value, config), etag: result.etag };
   }
 
   async write(state: ScannerState, etag: string | null) {

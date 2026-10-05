@@ -1,8 +1,9 @@
-import { get, put } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import type { FinancialState } from "../../lib/financial-types.ts";
 import type { FinancialConfig } from "./config.ts";
 import { emptyFinancialState, validateFinancialState } from "./store.ts";
 import { isConcurrentBlobWrite } from "../market/blob-store.ts";
+import { readVersionedBlob } from "../blob-state.ts";
 
 const PATH = "chaos/financial-state.json";
 export interface FinancialStateStore {
@@ -29,11 +30,10 @@ export async function updateFinancialBlob(reader: FinancialBlobReader, config: F
 export class BlobFinancialStore implements FinancialStateStore {
   private reader: FinancialBlobReader = {
     read: async config => {
-      const result = await get(PATH, { access: "private", useCache: false });
+      const result = await readVersionedBlob(PATH);
       if (!result) return { state: emptyFinancialState(config), etag: null };
-      if (result.statusCode !== 200 || !result.stream) throw new Error("Unable to read financial Blob state");
-      const state = validateFinancialState(JSON.parse(await new Response(result.stream).text()));
-      return { state, etag: result.blob.etag };
+      const state = validateFinancialState(JSON.parse(result.content));
+      return { state, etag: result.etag };
     },
     write: async (state, etag) => {
       await put(PATH, JSON.stringify(state), { access: "private", addRandomSuffix: false,
