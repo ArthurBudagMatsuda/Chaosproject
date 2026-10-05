@@ -252,6 +252,7 @@ test("stale data disables distribution readiness and disk persistence remains at
 });
 
 test("serverless refresh keeps valid state and schedules only missing or expired observations", () => {
+  assert.ok(SERVERLESS_REFRESH_MS < config.maxComparisonGapMs);
   const state = emptyState(config);
   assert.equal(stateNeedsRefresh(state, now), true);
   state.snapshot.lastAttempt = new Date(now).toISOString();

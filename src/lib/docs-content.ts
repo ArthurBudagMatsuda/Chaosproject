@@ -63,7 +63,7 @@ export const docsPages: DocPage[] = [
   { slug: "roadmap", label: "Operations", title: "Operations", subtitle: "Runtime responsibilities and service boundaries", description: "The services required to keep market and financial observations available.", sections: [
     { id: "web-service", title: "Web service", paragraphs: ["The Next.js application serves the public interface, documentation, read-only APIs and protected TXID verification console. It does not launch provider scans from page requests."] },
     { id: "worker", title: "Monitoring worker", paragraphs: ["The scanner runs as a separate long-lived process. It refreshes market observations, calculates the index and reads configured Solana addresses at their respective intervals."] },
-    { id: "persistence", title: "Persistence", paragraphs: ["The current atomic JSON stores and locks are designed for one persistent host. Multi-host or serverless operation requires shared persistence and distributed coordination before the scanner can be considered reliable in that environment."] },
+    { id: "persistence", title: "Persistence", paragraphs: ["Local workers use atomic JSON stores and locks on one persistent host. On Vercel, private Blob storage preserves market and financial state across deployments; conditional version writes protect concurrent updates. Expired observations refresh on API traffic. Continuous monitoring without visitors requires a separately scheduled or always-on worker."] },
   ] },
 ];
 

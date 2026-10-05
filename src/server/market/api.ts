@@ -15,6 +15,8 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
   if (++cache.requests > 300) return Response.json({ error: "API rate limit reached" }, { status: 429, headers: { "Retry-After": String(Math.ceil((cache.windowStart + 60_000 - now) / 1000)), "Cache-Control": "no-store" } });
   const config = getMarketConfig();
   try {
+    // Independent services refresh concurrently within the 60-second route budget.
+    const financialRead = readFinancialData().catch(() => null);
     if (!cache.snapshot || now >= cache.expires) {
       cache.pending ??= readMarketState(config).then(result => { cache.snapshot = result.state.snapshot; cache.candidates = result.state.candidates; cache.storage = result.storage; cache.expires = Date.now() + 5000; return result.state.snapshot; }).finally(() => { cache.pending = undefined; });
       await cache.pending;
@@ -28,7 +30,7 @@ export async function marketResponse(kind: "chaos" | "tokens" | "events") {
     }
     const freshnessConfig = cache.storage === "vercel-blob" ? { ...config, staleAfterMs: Math.max(config.staleAfterMs, SERVERLESS_REFRESH_MS * 2) } : config;
     let snapshot = publicSnapshot(cache.snapshot!, freshnessConfig, now);
-    const financial = await readFinancialData().catch(() => null);
+    const financial = await financialRead;
     const names = ["volume", "marketCap", "liquidity", "holders", "transactions", "price"] as const;
     if (snapshot.components && names.every(name => snapshot.components?.[name])) {
       const market = Object.fromEntries(names.map(name => [name, snapshot.components![name]])) as Pick<NonNullable<MarketSnapshot["components"]>, typeof names[number]>;

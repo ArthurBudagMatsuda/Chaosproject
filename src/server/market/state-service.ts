@@ -5,7 +5,8 @@ import { DexClient } from "./dex-client.ts";
 import { scanMarket } from "./scanner.ts";
 import { MarketStore } from "./store.ts";
 
-export const SERVERLESS_REFRESH_MS = 30 * 60_000;
+// Keep samples closer than the default 20-minute comparison window.
+export const SERVERLESS_REFRESH_MS = 5 * 60_000;
 
 type MarketStateResult = { state: ScannerState; storage: "local-json" | "vercel-blob" };
 type RefreshGlobals = typeof globalThis & { chaosMarketRefresh?: Promise<ScannerState> };
